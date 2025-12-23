@@ -23,13 +23,17 @@ def get_executor():
         )
     return _executor
 
-def _shutdown_executor():
+def _shutdown_executor(wait=False):
+    """Shuts down the executor, optionally cancelling pending tasks."""
     global _executor
     if _executor is not None:
-        _executor.shutdown(wait=True)
+        # cancel_futures=True is available in Python 3.9+ 
+        # It's much faster for stopping large batches of tasks.
+        _executor.shutdown(wait=wait, cancel_futures=True)
         _executor = None
 
-atexit.register(_shutdown_executor)
+# We use a lambda to ensure the default atexit call doesn't block forever
+atexit.register(lambda: _shutdown_executor(wait=False))
 
 class PipelineManager:
     """Pipeline manager that processes files through indexing, categorization, and hashing passes.
@@ -136,9 +140,8 @@ class PipelineManager:
     # --- Pipeline Engines ---
 
     def _run_fs_pipeline(self, root_path, worker_func, progress_callback):
-        """Process files from filesystem to database."""
+        """Process files from filesystem to database using a sliding window."""
         import concurrent.futures
-        from itertools import islice
         
         buffer = []
         total = 0
@@ -146,14 +149,27 @@ class PipelineManager:
         executor = get_executor()
         walker = smart_walk(Path(root_path))
         
-        while True:
-            chunk = list(islice(walker, settings.batch_size))
-            if not chunk:
-                break
+        max_queued = settings.batch_size
+        futures = set()
+        
+        def fill_pool():
+            nonlocal total_bytes
+            while len(futures) < max_queued:
+                try:
+                    item = next(walker)
+                    futures.add(executor.submit(worker_func, item))
+                except StopIteration:
+                    return False
+            return True
+
+        has_more = fill_pool()
+        
+        while futures:
+            done, futures = concurrent.futures.wait(
+                futures, return_when=concurrent.futures.FIRST_COMPLETED
+            )
             
-            futures = [executor.submit(worker_func, item) for item in chunk]
-            
-            for future in concurrent.futures.as_completed(futures):
+            for future in done:
                 try:
                     result = future.result()
                     if result:
@@ -163,35 +179,67 @@ class PipelineManager:
                         if progress_callback:
                             progress_callback()
                     
-                    if len(buffer) >= (settings.batch_size // 10):
+                    if len(buffer) >= (max_queued // 10):
                         self._flush_insert(buffer)
                         buffer = []
                 except Exception as e:
                     from ...utils.logger import logger
-                    logger.debug(f"Worker failed processing file: {e}", exc_info=True)
+                    logger.debug(f"FS Worker failed: {e}", exc_info=True)
+            
+            if has_more:
+                has_more = fill_pool()
         
         if buffer:
             self._flush_insert(buffer)
         return {'count': total, 'bytes': total_bytes}
 
     def _run_db_pipeline(self, query, worker_func, progress_callback):
-        """Process items from database with updates."""
+        """Process items from database using a sliding window."""
+        import concurrent.futures
+        
         buffer = []
         total = 0
         executor = get_executor()
-        future_results = executor.map(worker_func, query.iterator())
+        chunk_size = settings.batch_size
         
-        for result in future_results:
-            if result:
-                buffer.append(result)
-                total += 1
-                if progress_callback:
-                    progress_callback()
-                
-            if len(buffer) >= (settings.batch_size // 10):
-                self._flush_update(buffer)
-                buffer = []
-                
+        query_iterator = query.iterator()
+        futures = set()
+        
+        def fill_pool():
+            while len(futures) < chunk_size:
+                try:
+                    item = next(query_iterator)
+                    futures.add(executor.submit(worker_func, item))
+                except StopIteration:
+                    return False
+            return True
+
+        has_more = fill_pool()
+        
+        while futures:
+            done, futures = concurrent.futures.wait(
+                futures, return_when=concurrent.futures.FIRST_COMPLETED
+            )
+            
+            for future in done:
+                try:
+                    result = future.result()
+                    if result:
+                        buffer.append(result)
+                        total += 1
+                        if progress_callback:
+                            progress_callback()
+                        
+                    if len(buffer) >= (chunk_size // 10):
+                        self._flush_update(buffer)
+                        buffer = []
+                except Exception as e:
+                    from ...utils.logger import logger
+                    logger.debug(f"DB Worker failed: {e}", exc_info=True)
+            
+            if has_more:
+                has_more = fill_pool()
+                    
         if buffer:
             self._flush_update(buffer)
         return total

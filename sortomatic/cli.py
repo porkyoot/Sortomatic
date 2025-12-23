@@ -176,9 +176,14 @@ def _run_pipeline(path: Optional[str], mode: str):
                 progress.refresh()
                 
         except KeyboardInterrupt:
-            # Graceful interruption (Ctrl+C)
+            # Graceful but immediate interruption
+            from .core.pipeline.manager import _shutdown_executor
+            _shutdown_executor(wait=False)
+            database.close_db()
             logger.warning(Strings.SCAN_INTERRUPTED)
-            raise typer.Exit(130)  # Standard exit code for SIGINT
+            # os._exit bypasses the 'Join threads' stall in Python's atexit
+            import os as native_os
+            native_os._exit(130)
         except Exception as e:
             # Ungraceful error
             logger.critical(Strings.SCAN_ERROR)
