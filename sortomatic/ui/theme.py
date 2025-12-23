@@ -139,10 +139,16 @@ def apply_theme(palette: ColorPalette):
             background-color: var(--app-bg) !important;
         }}
         .border-app-subtle {{
-            border: 1px solid color-mix(in srgb, var(--app-text) 10%, transparent) !important;
+            border: 1px solid color-mix(in srgb, var(--app-text)) !important;
         }}
         .border-app {{
             border: 1px solid var(--app-text-sec) !important;
+        }}
+        .text-app-main {{
+            color: var(--app-text) !important;
+        }}
+        .text-app-subtle {{
+            color: var(--app-text-sec) !important;
         }}
     </style>
     ''')

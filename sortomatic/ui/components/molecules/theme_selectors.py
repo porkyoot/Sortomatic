@@ -29,12 +29,12 @@ class ThemeSelector(ui.row):
             # 1. Theme Dropdown (Label + Menu)
             # Replaced heavy AppSelect with lightweight Label+Menu to match Badge height
             with ui.row().classes('items-center gap-1 cursor-pointer group'):
-                ui.label(self.current_theme.capitalize()).classes('text-[10px] font-bold uppercase tracking-widest')
-                ui.icon('mdi-chevron-down', size='12px').classes('opacity-50 group-hover:opacity-100 transition-opacity')
+                ui.label(self.current_theme.capitalize()).classes('text-[10px] font-bold uppercase tracking-widest text-app-main')
+                ui.icon('mdi-chevron-down', size='12px').classes('opacity-50 group-hover:opacity-100 transition-opacity text-app-main')
                 
                 with ui.menu().classes('bg-app-base border border-app shadow-lg rounded-app'):
                     # Hardcoded options for now
-                    ui.menu_item('Solarized', on_click=lambda: self._handle_theme_change('solarized')).classes('text-[10px] uppercase font-bold tracking-widest')
+                    ui.menu_item('Solarized', on_click=lambda: self._handle_theme_change('solarized')).classes('text-[10px] uppercase font-bold tracking-widest text-app-main')
 
             # 2. Vertical Divider (Height 3 to match BadgeRow)
             ui.element('div').classes('h-3 w-0 border-app-subtle')
