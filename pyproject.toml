@@ -30,6 +30,9 @@ test = [
 # This magic line creates the 'sortomatic' command in your shell
 sortomatic = "sortomatic.cli:app"
 
+[tool.setuptools]
+include-package-data = true
+
 [tool.setuptools.packages.find]
 where = ["."]
 
