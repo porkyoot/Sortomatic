@@ -25,6 +25,9 @@ def start_app(port: int, theme: str, dark: bool, path: str = None):
         
         # 1. Global Page State & Handlers
         def handle_theme_change(theme_info):
+            # Check if client is still connected
+            if not client.has_socket_connection:
+                return
             # theme_info: { 'name': str, 'is_dark': bool }
             from .themes.solarized import SOLARIZED_DARK, SOLARIZED_LIGHT
             is_dark = theme_info.get('is_dark', True)
@@ -141,14 +144,21 @@ def start_app(port: int, theme: str, dark: bool, path: str = None):
                     with disk_hist: AppHistogram(stats['disk'], color=palette.orange, label="I/O")
 
             def update_stats():
-                for key in stats:
-                    stats[key].append(random.random())
-                cpu_hist.clear()
-                with cpu_hist: AppHistogram(stats['cpu'], color=palette.green, label="CPU")
-                ram_hist.clear()
-                with ram_hist: AppHistogram(stats['ram'], color=palette.blue, label="RAM")
-                disk_hist.clear()
-                with disk_hist: AppHistogram(stats['disk'], color=palette.orange, label="I/O")
+                # Check if client is still connected
+                if not client.has_socket_connection:
+                    return
+                    
+                try:
+                    for key in stats:
+                        stats[key].append(random.random())
+                    cpu_hist.clear()
+                    with cpu_hist: AppHistogram(stats['cpu'], color=palette.green, label="CPU")
+                    ram_hist.clear()
+                    with ram_hist: AppHistogram(stats['ram'], color=palette.blue, label="RAM")
+                    disk_hist.clear()
+                    with disk_hist: AppHistogram(stats['disk'], color=palette.orange, label="I/O")
+                except Exception:
+                    pass
 
             ui.timer(1.0, update_stats)
 
@@ -216,6 +226,8 @@ def start_app(port: int, theme: str, dark: bool, path: str = None):
             log_btn = AppButton("Generate Log", icon="add", on_click=lambda: terminal.log(f"[{datetime.now().strftime('%H:%M:%S')}] Event: New data packet received.", color=palette.cyan))
             
             def auto_log():
+                if not client.has_socket_connection:
+                    return
                 msgs = [
                     ("Index: Scanning /home/user/photos...", palette.blue),
                     ("Hash: Match found for image_01.jpg", palette.green),
@@ -266,6 +278,8 @@ def start_app(port: int, theme: str, dark: bool, path: str = None):
 
         # Mock metric emitter
         def emit_mock_metrics():
+            if not client.has_socket_connection:
+                return
             bridge.emit("metrics_updated", {
                 'cpu': [random.random() for _ in range(20)],
                 'ram': [random.random() for _ in range(20)]

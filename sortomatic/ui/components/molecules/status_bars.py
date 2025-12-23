@@ -65,10 +65,18 @@ class StatusBar(ui.footer):
 
     def update_metrics(self, cpu_history: List[float], ram_history: List[float]):
         """Update histograms with fresh data."""
-        self.cpu_container.clear()
-        with self.cpu_container:
-            AppHistogram(cpu_history, color=self.palette.green, height="16px", bar_width="2px")
+        # Check if client is still connected before updating
+        if not self.client or not self.client.has_socket_connection:
+            return
             
-        self.ram_container.clear()
-        with self.ram_container:
-            AppHistogram(ram_history, color=self.palette.blue, height="16px", bar_width="2px")
+        try:
+            self.cpu_container.clear()
+            with self.cpu_container:
+                AppHistogram(cpu_history, color=self.palette.green, height="16px", bar_width="2px")
+                
+            self.ram_container.clear()
+            with self.ram_container:
+                AppHistogram(ram_history, color=self.palette.blue, height="16px", bar_width="2px")
+        except Exception:
+            # Silently ignore updates if the client is no longer available
+            pass
