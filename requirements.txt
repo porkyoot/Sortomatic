@@ -8,6 +8,7 @@ Pillow
 pyacoustid
 humanize
 xxhash
+nicegui
 
 pytest
 pytest-mock

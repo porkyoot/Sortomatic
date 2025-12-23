@@ -35,6 +35,11 @@ class Settings:
         cpu_count = os.cpu_count() or 4
         self.max_workers = max(1, cpu_count // 2)
 
+        # GUI Settings
+        self.gui_port: int = 8080
+        self.gui_theme: str = "solarized"
+        self.gui_dark_mode: bool = True
+
         # Initialize and Load
         self._ensure_config_exists()
         self.load()
@@ -71,6 +76,9 @@ class Settings:
                 self.fast_hash_size = data.get("fast_hash_size", self.fast_hash_size)
                 self.categorization_timeout = data.get("categorization_timeout", self.categorization_timeout)
                 self.hashing_timeout = data.get("hashing_timeout", self.hashing_timeout)
+                self.gui_port = data.get("gui_port", self.gui_port)
+                self.gui_theme = data.get("gui_theme", self.gui_theme)
+                self.gui_dark_mode = data.get("gui_dark_mode", self.gui_dark_mode)
 
         # 2. Load Filetypes
         if self.filetypes_file.exists():

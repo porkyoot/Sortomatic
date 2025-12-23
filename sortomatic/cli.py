@@ -273,3 +273,18 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.info(f"\n{Strings.USER_ABORT}")
         sys.exit(0)
+
+@app.command()
+def gui(
+    port: int = typer.Option(None, help=f"Port to run the GUI on (default: {settings.gui_port})"),
+    theme: str = typer.Option(None, help=f"Theme name (default: {settings.gui_theme})"),
+    dark: bool = typer.Option(None, "--dark/--light", help=f"Enable/Disable dark mode (default: {settings.gui_dark_mode})")
+):
+    """Launch the Web Interface."""
+    from .ui.web.main import start_app
+    
+    final_port = port if port is not None else settings.gui_port
+    final_theme = theme if theme is not None else settings.gui_theme
+    final_dark = dark if dark is not None else settings.gui_dark_mode
+    
+    start_app(final_port, final_theme, final_dark)
