@@ -10,7 +10,7 @@ from .core.pipeline.manager import PipelineManager
 from .l8n import Strings
 from .utils.logger import setup_logger, logger, console
 
-app = typer.Typer(help=Strings.APP_HELP)
+app = typer.Typer(help=Strings.APP_HELP, invoke_without_command=True)
 
 
 # Configuration
@@ -48,6 +48,7 @@ def ensure_environment():
 
 @app.callback()
 def main(
+    ctx: typer.Context,
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Show DEBUG logs"),
     threads: Optional[int] = typer.Option(None, "--threads", "-j", help="Max threads to use")
 ):
@@ -59,10 +60,37 @@ def main(
         
     log_level = "DEBUG" if verbose else "INFO"
     setup_logger(log_level)
+    
+    # If no subcommand provided, show help
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
 
 # --- SCAN GROUP ---
-scan_app = typer.Typer(help=Strings.SCAN_DOC)
+scan_app = typer.Typer(help=Strings.SCAN_DOC, invoke_without_command=True)
 app.add_typer(scan_app, name="scan")
+
+@scan_app.callback()
+def scan_callback(
+    ctx: typer.Context,
+    path: Optional[str] = typer.Argument(None, help=Strings.SCAN_PATH_HELP),
+    reset: bool = typer.Option(False, "--reset", help=Strings.SCAN_RESET_HELP),
+    threads: Optional[int] = typer.Option(None, "--threads", "-j", help="Max threads to use")
+):
+    """
+    Scanning pipeline commands. If no subcommand is provided and a path is given, runs full scan.
+    """
+    # If a subcommand was invoked, don't do anything here
+    if ctx.invoked_subcommand is not None:
+        return
+    
+    # If no path provided, show help
+    if path is None:
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
+    
+    # Run full scan pipeline
+    _run_pipeline(path, reset, threads, mode="all")
 
 @scan_app.command("all", help=Strings.SCAN_ALL_DOC)
 def scan_all(
@@ -170,7 +198,8 @@ def _run_pipeline(path: Optional[str], reset: bool, threads: Optional[int], mode
             progress.advance(task)
             
         if mode == 'all':
-             count = manager.run_all(path, update_progress)
+            # For 'all' mode, just run index pass here
+            count = manager.run_index(path, update_progress)
         elif mode == 'index':
              count = manager.run_index(path, update_progress)
         elif mode == 'category':
@@ -181,6 +210,11 @@ def _run_pipeline(path: Optional[str], reset: bool, threads: Optional[int], mode
             count = 0
             
     logger.success(Strings.SCAN_COMPLETE.format(total_files=count))
+    
+    # For 'all' mode, continue with categorize and hash passes
+    if mode == 'all':
+        _run_pipeline(None, False, threads, mode='category')
+        _run_pipeline(None, False, threads, mode='hash')
 
 @app.command(help=Strings.STATS_DOC)
 def stats():
