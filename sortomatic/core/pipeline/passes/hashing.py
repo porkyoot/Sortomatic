@@ -21,7 +21,7 @@ def compute_hashes(ctx: dict):
     fpath = ctx['path']
     
     # 1. Fast Hash (Size + Prefix)
-    # Good for quick exclusion
+    # Near-instant. Good for initial grouping.
     file_size = ctx['size_bytes']
     if file_size > 0:
         try:
@@ -31,8 +31,26 @@ def compute_hashes(ctx: dict):
         except:
              ctx['fast_hash'] = None
     
-    # 2. Full Hash (MD5)
-    # Still fast, but covers whole content
+    # 2. Perceptual Hash (Only for images) - CPU INTENSIVE
+    # We do this before Full Hash to overlap CPU work with I/O from other threads
+    if ctx.get('category') == Strings.CAT_IMAGES and imagehash:
+        try:
+            with Image.open(fpath) as img:
+                ctx['perceptual_hash'] = str(imagehash.average_hash(img))
+        except:
+            pass # Corrupt image or not supported
+            
+    # 3. Audio Fingerprint (Only for audio files) - CPU INTENSIVE
+    if ctx.get('category') == Strings.CAT_AUDIO and pyacoustid:
+        try:
+            # External process 'fpcalc' or local FFmpeg decoding happens here
+            _, fp = pyacoustid.fingerprint_file(fpath)
+            ctx['fast_hash'] = fp.decode('utf-8') if isinstance(fp, bytes) else fp
+        except:
+            pass # Corrupt audio
+            
+    # 4. Full Hash (MD5) - I/O INTENSIVE
+    # Still fast, but covers whole content. Performed last to use remaining I/O bandwidth.
     hasher = hashlib.md5()
     try:
         with open(fpath, 'rb') as f:
@@ -41,22 +59,5 @@ def compute_hashes(ctx: dict):
         ctx['full_hash'] = hasher.hexdigest()
     except:
         ctx['full_hash'] = None
-    
-    # 3. Perceptual Hash (Only for images)
-    if ctx.get('category') == Strings.CAT_IMAGES and imagehash:
-        try:
-            with Image.open(fpath) as img:
-                ctx['perceptual_hash'] = str(imagehash.average_hash(img))
-        except:
-            pass # Corrupt image or not supported
-            
-    # 4. Audio Fingerprint (Only for audio files)
-    if ctx.get('category') == Strings.CAT_AUDIO and pyacoustid:
-        try:
-            # pyacoustid.fingerprint_file returns (duration, fingerprint)
-            _, fp = pyacoustid.fingerprint_file(fpath)
-            ctx['fast_hash'] = fp.decode('utf-8') if isinstance(fp, bytes) else fp
-        except:
-            pass # Corrupt audio or missing fpcalc
             
     return ctx
