@@ -2,6 +2,7 @@ from nicegui import ui
 from typing import Optional, Callable
 from ...theme import apply_theme
 from ..atoms.buttons import AppButton
+from ..atoms.inputs.selects import AppSelect
 
 class ThemeSelector(ui.row):
     """
@@ -13,7 +14,7 @@ class ThemeSelector(ui.row):
                  is_dark: bool = True, 
                  on_change: Optional[Callable] = None):
         super().__init__()
-        self.classes('items-center gap-3 px-3 py-1 rounded-app bg-white/5 border border-white/5')
+        self.classes('flex flex-row items-center gap-2 px-2 py-0.5 rounded-app bg-white/5 border border-white/5 no-wrap')
         
         self.current_theme = current_theme
         self.is_dark = is_dark
@@ -26,11 +27,14 @@ class ThemeSelector(ui.row):
         with self:
             # 1. Theme Dropdown
             # Hardcoded options for now based on available theme files
-            ui.select(
-                options=["solarized"], 
-                value=self.current_theme,
-                on_change=self._handle_theme_change
-            ).props('dense borderless dark flat hide-underline').classes('text-[10px] uppercase font-bold tracking-widest opacity-60 w-24')
+            AppSelect(
+                options=["Solarized"],  # Capitalize to match display
+                value=self.current_theme.capitalize(),
+                on_change=self._handle_theme_change,
+                clearable=False,
+                props='dense borderless flat',
+                classes='text-sm font-bold'
+            )
 
             # 2. Vertical Divider
             ui.element('div').classes('w-px h-4 bg-white/10')
@@ -44,7 +48,8 @@ class ThemeSelector(ui.row):
                     icon="wb_sunny",
                     on_click=self._toggle_mode,
                     shape="circle",
-                    variant="glass",
+                    size="sm",
+                    variant="simple",
                     tooltip="Switch to Light Mode"
                 ).style('--q-primary: #ff9800;') # Material Orange
             else:
@@ -53,7 +58,8 @@ class ThemeSelector(ui.row):
                     icon="nights_stay",
                     on_click=self._toggle_mode,
                     shape="circle",
-                    variant="glass",
+                    size="sm",
+                    variant="simple",
                     tooltip="Switch to Dark Mode"
                 ).style('--q-primary: #2196f3;') # Material Blue
 
@@ -65,7 +71,7 @@ class ThemeSelector(ui.row):
             self.on_change(self.current_theme, self.is_dark)
 
     def _handle_theme_change(self, e):
-        self.current_theme = e.value
+        self.current_theme = e.value.lower()  # Store as lowercase internally
         self.render()
         if self.on_change:
             self.on_change(self.current_theme, self.is_dark)

@@ -3,11 +3,11 @@ from typing import List, Dict, Any, Optional, Callable, Union
 
 def AppSelect(
     options: Union[List[str], Dict[Any, str]],
-    label: str = "",
+    label: Optional[str] = None,
     value: Any = None,
     on_change: Optional[Callable] = None,
     multiple: bool = False,
-    use_chips: bool = True,
+    use_chips: bool = False,  # Default to False to prevent removable chips
     clearable: bool = True,
     classes: str = "",
     props: str = ""
@@ -35,11 +35,19 @@ def AppSelect(
     ).props(
         f'outlined dense hide-bottom-space rounded-app '
         f'{"multiple" if multiple else ""} {"use-chips" if use_chips else ""} '
-        f'{"clearable" if clearable else ""} {props}'
-    ).classes(f'w-full transition-all {classes}')
+        f'{props}'
+    ).classes(f'w-full transition-all {classes}').style(
+        'color: var(--app-text); background-color: var(--app-bg);'
+    )
+    
+    # Only add clearable prop if explicitly requested
+    if clearable:
+        sel.props('clearable')
 
-    # Apply global rounding to the popup menu as well
-    sel.props('popup-content-class="rounded-app shadow-lg border border-[var(--q-primary)]"')
+    # Apply theme colors to the popup menu
+    sel.props('popup-content-class="rounded-app shadow-lg border border-white/10"')
+    sel.props('popup-content-style="background-color: var(--app-bg); color: var(--app-text);"')
     
     return sel
+
 

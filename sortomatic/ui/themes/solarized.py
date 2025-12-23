@@ -24,7 +24,8 @@ RECURSIVE_SANS = "'Recursive', sans-serif"
 
 SOLARIZED_DARK = ColorPalette(
     bg=BASE03,
-    fg=BASE0,
+    bg_secondary=BASE02,
+    fg=BASE3,
     fg_secondary=BASE01,
     primary=BLUE,
     secondary=ORANGE,
@@ -52,7 +53,8 @@ SOLARIZED_DARK = ColorPalette(
 
 SOLARIZED_LIGHT = ColorPalette(
     bg=BASE3,
-    fg=BASE00,
+    bg_secondary=BASE2,
+    fg=BASE03,
     fg_secondary=BASE1,
     primary=BLUE,
     secondary=ORANGE,

@@ -3,7 +3,7 @@
 # watch-restart.sh – restart web service on file change
 # -------------------------------------------------
 
-WATCH_DIR="./app"
+WATCH_DIR="./sortomatic"
 
 # 1. Requirement check: Fail fast if inotifywait is missing
 if ! command -v inotifywait &> /dev/null; then

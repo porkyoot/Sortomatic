@@ -1,12 +1,13 @@
 from nicegui import ui
-from typing import List, Dict, Optional, Callable
+from typing import List, Dict, Optional, Callable, Any
 import os
 from ...theme import ColorPalette, CategoryStyles
 from ..atoms.badges import CategoryBadge, AppBadge
 from ..atoms.icons import AppIcon
 from ....utils.formatters import format_size, format_date_human
-from ....core.bridge import bridge
 from ....core.types import ScanContext
+from ...protocols import FileTreeDataSource
+from ...datasources import BridgeFileTreeDataSource
 
 class FileTreeRow(ui.row):
     """
@@ -63,11 +64,30 @@ class FileTreeRow(ui.row):
 class FileTree(ui.column):
     """
     Powerful, lazy-loading file tree with sorting and configurable columns.
-    Uses incremental rendering - only fetches and renders children when folders expand.
+    
+    Features:
+    - True lazy loading: Only fetches children when folders are expanded
+    - Protocol-based data source: Works with any FileTreeDataSource implementation
+    - State management: refresh() and reload() for dynamic updates
+    - Incremental rendering: No full-tree re-renders on expansion
+    
+    Usage:
+        # Default with Bridge data source
+        tree = FileTree(root_path="/", palette=palette)
+        
+        # Custom data source
+        tree = FileTree(root_path="/", data_source=MyDataSource(), palette=palette)
+        
+        # Apply filters and reload
+        tree.reload(filters={'search': 'test.py', 'category': 'Code'})
+        
+        # Refresh current view
+        tree.refresh()
     """
     def __init__(self, 
                  root_path: str, 
                  palette: ColorPalette,
+                 data_source: Optional[FileTreeDataSource] = None,
                  show_category: bool = True,
                  show_size: bool = True,
                  show_date: bool = True):
@@ -79,9 +99,14 @@ class FileTree(ui.column):
         self.show_size = show_size
         self.show_date = show_date
         
+        # Data source (defaults to Bridge if not provided)
+        self.data_source = data_source or BridgeFileTreeDataSource()
+        
         self.sort_by = "name"
         self.sort_desc = False
-        self.filter_text: str = ""
+        
+        # Filter criteria (dict for extensibility)
+        self.filters: Dict[str, Any] = {}
         
         # State management for expansion
         self.expanded_paths = set()
@@ -96,8 +121,47 @@ class FileTree(ui.column):
         self.render()
 
     def set_filter(self, text: str):
-        """Hook for external search components."""
-        self.filter_text = text
+        """
+        Legacy method for backward compatibility.
+        Sets a search filter and re-renders the tree.
+        
+        Args:
+            text: Search text to filter files/folders
+        """
+        self.filters['search'] = text
+        self.render()
+
+    def reload(self, filters: Optional[Dict[str, Any]] = None):
+        """
+        Reload the tree with new filter criteria.
+        Clears all expanded state and re-fetches from root.
+        
+        Args:
+            filters: New filter criteria dict (e.g., {'search': 'test', 'category': 'Image'})
+                    If None, keeps current filters
+        
+        Usage:
+            tree.reload({'search': 'test.py'})
+            tree.reload({'category': 'Code', 'min_size': 1024})
+        """
+        if filters is not None:
+            self.filters = filters
+        
+        # Clear all state
+        self.expanded_paths.clear()
+        
+        # Re-render from root
+        self.render()
+
+    def refresh(self):
+        """
+        Refresh the current tree view without changing filters or expansion state.
+        Re-fetches data for currently expanded folders.
+        
+        Usage:
+            tree.refresh()  # After file system changes
+        """
+        # Re-render preserving expanded state
         self.render()
 
     def sort_tree(self, field: str):
@@ -149,15 +213,14 @@ class FileTree(ui.column):
     async def _render_level_recursive(self, path: str, level: int, parent_container: ui.column):
         """
         Fetches and renders a single level, then recursively renders expanded children.
+        Uses the data_source to fetch children (protocol-based, decoupled from Bridge).
         This is called during full re-renders (e.g., after sorting changes).
         """
-        response = await bridge.request("get_file_tree", {"path": path, "search": self.filter_text})
-        if not response:
-            return
-            
-        folders = response["folders"]
-        # Convert dicts back to ScanContext for dot access in UI
-        files = [ScanContext(**f) for f in response["files"]]
+        # Fetch children using the data source (not hardcoded bridge!)
+        folders, files_dicts = await self.data_source.get_children(path, self.filters)
+        
+        # Convert dicts to ScanContext for dot access in UI
+        files = [ScanContext(**f) for f in files_dicts]
         
         # Apply sorting
         folders, files = self._sort_items(folders, files)
@@ -270,17 +333,3 @@ class FileTree(ui.column):
             container = self.folder_containers.get(path)
             if container:
                 container.clear()
-
-    def _toggle_expansion(self, path: str):
-        """
-        Legacy method - kept for compatibility but not recommended.
-        Use _toggle_expansion_incremental instead.
-        """
-        if path in self.expanded_paths:
-            self.expanded_paths.remove(path)
-        else:
-            self.expanded_paths.add(path)
-        
-        # Full re-render (SLOW for large trees)
-        self.render()
-

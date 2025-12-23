@@ -4,6 +4,7 @@ from nicegui import ui
 @dataclass
 class ColorPalette:
     bg: str
+    bg_secondary: str
     fg: str
     fg_secondary: str
     primary: str
@@ -63,6 +64,7 @@ def apply_theme(palette: ColorPalette):
             --q-secondary: {palette.secondary};
             --q-dark: {palette.bg};
             --app-bg: {palette.bg};
+            --app-bg-secondary: {palette.bg_secondary};
             --app-text: {palette.fg};
             --app-text-sec: {palette.fg_secondary};
             --app-rounded: {palette.rounded};
@@ -177,6 +179,7 @@ class StatusStyles:
     PENDING = "pending"
     READY = "ready"
     ERROR = "error"
+    IDLE = "idle"
     
     # Synonyms mapping
     _SYNONYMS = {
@@ -193,7 +196,7 @@ class StatusStyles:
     @staticmethod
     def resolve_state(state: str) -> str:
         s = state.lower()
-        if s in [StatusStyles.UNKNOWN, StatusStyles.PENDING, StatusStyles.READY, StatusStyles.ERROR]:
+        if s in [StatusStyles.UNKNOWN, StatusStyles.PENDING, StatusStyles.READY, StatusStyles.ERROR, StatusStyles.IDLE]:
             return s
         return StatusStyles._SYNONYMS.get(s, StatusStyles.UNKNOWN)
 
@@ -205,6 +208,7 @@ class StatusStyles:
             StatusStyles.PENDING: palette.yellow,
             StatusStyles.READY: palette.green,
             StatusStyles.ERROR: palette.red,
+            StatusStyles.IDLE: palette.blue,
         }
         return mapping.get(resolved, palette.grey)
 
@@ -216,5 +220,6 @@ class StatusStyles:
             StatusStyles.PENDING: "sync",
             StatusStyles.READY: "check_circle",
             StatusStyles.ERROR: "error_outline",
+            StatusStyles.IDLE: "pause_circle",
         }
         return mapping.get(resolved, "help_outline")

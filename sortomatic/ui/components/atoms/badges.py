@@ -18,7 +18,7 @@ def AppBadge(
     A styled badge for displaying statuses, categories, or counts.
     Supports solid, glass (translucent), and subtle (no background) variants.
     """
-    classes = 'items-center gap-1.5 px-3 py-1 rounded-app shadow-sm vibrant-shadow transition-all'
+    classes = 'items-center gap-1 px-2 py-0.5 rounded-app shadow-sm vibrant-shadow transition-all'
     if (interactive or on_click) and not disabled:
         classes += ' cursor-pointer hover:scale-105 active:scale-95'
     
@@ -26,7 +26,7 @@ def AppBadge(
         classes += ' opacity-30 grayscale'
         style = f'color: var(--app-text-sec); width: fit-content;'
     else:
-        style = f'color: {text_color}; width: fit-content;'
+        style = f'width: fit-content;'
         
         if variant == 'solid':
             style += f' background-color: {color};'
@@ -43,11 +43,12 @@ def AppBadge(
         if icon:
             AppIcon(icon, color=text_color, size='1.2em')
         
-        ui.label(label).classes('text-[10px] font-bold uppercase tracking-widest')
+        # Explicitly set color on labels
+        ui.label(label).classes('text-[10px] font-bold uppercase tracking-widest').style(f'color: {text_color}')
         
         if value:
-            ui.label('|').classes('opacity-30')
-            ui.label(value).classes('text-xs font-black')
+            ui.label('|').classes('opacity-30').style(f'color: {text_color}')
+            ui.label(value).classes('text-xs font-black').style(f'color: {text_color}')
 
 def CategoryBadge(
     category: str,
@@ -89,7 +90,8 @@ def StatusBadge(
         label=label,
         value=value,
         icon=icon,
-        color=color
+        color=color,
+        text_color=palette.fg  # Use the palette's foreground color
     )
 
 def CopyBadge(
