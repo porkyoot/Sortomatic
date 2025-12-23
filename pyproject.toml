@@ -15,7 +15,8 @@ dependencies = [
     "ImageHash",
     "Pillow",
     "pyacoustid",
-    "humanize"
+    "humanize",
+    "xxhash"
 ]
 requires-python = ">=3.8"
 

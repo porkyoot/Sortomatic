@@ -6,3 +6,4 @@ filetype
 ImageHash
 Pillow
 pyacoustidhumanize
+xxhash

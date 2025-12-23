@@ -1,17 +1,22 @@
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import Optional, Dict
 from ..database import FileIndex, db
 from ..scanner import smart_walk
+from ..types import ScanContext, UpdateContext
 from .passes import categorization, hashing
 from .executor import get_executor
 
 class PipelineManager:
-    def __init__(self, db_path: str, max_workers: int = 4):
-        self.db_path = db_path
-        self.workers = max_workers
+    """Pipeline manager that processes files through indexing, categorization, and hashing passes.
+    
+    Note: Uses global database state initialized via database.init_db().
+    """
+    def __init__(self, max_workers: int = 4):
+        self.max_workers = max_workers
 
-    def _index_pass(self, item: tuple):
+    def _index_pass(self, item: tuple) -> Optional[ScanContext]:
         """Extract filesystem metadata."""
         path_str, entry_type = item
         try:
@@ -19,28 +24,28 @@ class PipelineManager:
         except OSError:
             return None
             
-        return {
-            'path': path_str,
-            'filename': os.path.basename(path_str),
-            'entry_type': entry_type,
-            'size_bytes': stat.st_size,
-            'modified_at': datetime.fromtimestamp(stat.st_mtime),
-            'category': 'Project/Bundle' if entry_type == 'bundle' else None,
-            'mime_type': None,
-            'fast_hash': None,
-            'full_hash': None,
-            'perceptual_hash': None
-        }
+        return ScanContext(
+            path=path_str,
+            filename=os.path.basename(path_str),
+            entry_type=entry_type,
+            size_bytes=stat.st_size,
+            modified_at=datetime.fromtimestamp(stat.st_mtime),
+            category='Project/Bundle' if entry_type == 'bundle' else None,
+            mime_type=None,
+            fast_hash=None,
+            full_hash=None,
+            perceptual_hash=None
+        )
 
-    def _categorize_pass(self, item: FileIndex):
+    def _categorize_pass(self, item: FileIndex) -> Dict[str, any]:
         """Categorize file from database model."""
-        ctx = {
-            'path': item.path,
-            'filename': item.filename,
-            'size_bytes': item.size_bytes,
-            'category': None,
-            'mime_type': None
-        }
+        ctx = ScanContext(
+            path=item.path,
+            filename=item.filename,
+            size_bytes=item.size_bytes,
+            category=None,
+            mime_type=None
+        )
         
         ctx = categorization.detect_type(ctx)
         
@@ -51,16 +56,16 @@ class PipelineManager:
             'extension': ctx.get('extension')
         }
 
-    def _hash_pass(self, item: FileIndex):
+    def _hash_pass(self, item: FileIndex) -> Dict[str, any]:
         """Compute file hashes."""
-        ctx = {
-            'path': item.path,
-            'size_bytes': item.size_bytes,
-            'category': item.category,
-            'fast_hash': None,
-            'full_hash': None,
-            'perceptual_hash': None
-        }
+        ctx = ScanContext(
+            path=item.path,
+            size_bytes=item.size_bytes,
+            category=item.category,
+            fast_hash=None,
+            full_hash=None,
+            perceptual_hash=None
+        )
         
         ctx = hashing.compute_hashes(ctx)
         
@@ -71,13 +76,13 @@ class PipelineManager:
             'perceptual_hash': ctx.get('perceptual_hash')
         }
 
-    def _full_pass(self, item: tuple):
+    def _full_pass(self, item: tuple) -> Optional[ScanContext]:
         """Run all passes in sequence for single item."""
         ctx = self._index_pass(item)
         if not ctx:
             return None
         
-        if ctx['entry_type'] == 'bundle':
+        if ctx.get('entry_type') == 'bundle':
             return ctx
             
         ctx = categorization.detect_type(ctx)
@@ -139,8 +144,9 @@ class PipelineManager:
                     if len(buffer) >= 1000:
                         self._flush_insert(buffer)
                         buffer = []
-                except Exception:
-                    pass
+                except Exception as e:
+                    from ...utils.logger import logger
+                    logger.debug(f"Worker failed processing file: {e}", exc_info=True)
         
         if buffer:
             self._flush_insert(buffer)

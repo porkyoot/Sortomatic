@@ -133,23 +133,8 @@ def _run_pipeline(path: Optional[str], reset: bool, threads: Optional[int], mode
             if uncategorized > 0 or unhashed > 0:
                 logger.info(f"Resuming scan ({existing_count} files already indexed)")
 
-    manager = PipelineManager(str(DB_PATH), max_workers=settings.max_workers)
-    
-    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn, MofNCompleteColumn, ProgressColumn
-    from rich.text import Text
-    from rich.table import Column
-    
-    # Custom speed column
-    class SpeedColumn(ProgressColumn):
-        def __init__(self, unit="files/s"):
-            self.unit = unit
-            super().__init__(table_column=Column(no_wrap=True, justify="right"))
-            
-        def render(self, task):
-            speed = task.speed
-            if speed is None or speed < 0.1:
-                return Text("--", style="dim cyan")
-            return Text(f"{speed:.1f} {self.unit}", style="cyan")
+    manager = PipelineManager(max_workers=settings.max_workers)
+    from .utils.progress import create_scan_progress
     
     # Determine task description based on mode
     if mode == 'all' or mode == 'index':
@@ -171,24 +156,7 @@ def _run_pipeline(path: Optional[str], reset: bool, threads: Optional[int], mode
             (database.FileIndex.entry_type == 'file')
         ).count()
     
-    # Build progress columns - use different display based on whether we know the total
-    progress_columns = [
-        SpinnerColumn(),
-        TextColumn("[bold blue]{task.description:<20}"),  # Fixed width for alignment
-        BarColumn(),
-    ]
-    
-    # For determinate progress, show percentage. For indeterminate, show count
-    if total is not None:
-        progress_columns.append(TaskProgressColumn())
-    else:
-        progress_columns.append(MofNCompleteColumn())
-    
-    # Add speed column
-    speed_unit = "op/s" if mode == 'hash' else "files/s"
-    progress_columns.append(SpeedColumn(unit=speed_unit))
-    
-    with Progress(*progress_columns, console=console) as progress:
+    with create_scan_progress(console, mode, total) as progress:
         task = progress.add_task(task_desc, total=total)
         
         def update_progress():
