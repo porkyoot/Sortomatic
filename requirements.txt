@@ -1,4 +1,8 @@
-typer
+typer[all]
 rich
 peewee
 pyyaml
+filetype
+ImageHash
+Pillow
+pyacoustid

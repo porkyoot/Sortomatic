@@ -17,6 +17,7 @@ class Settings:
     def __init__(self):
         self.categories: Dict[str, List[str]] = DEFAULT_CATEGORIES
         self.ignore_patterns: List[str] = [".git", "__pycache__", ".DS_Store", "node_modules"]
+        self.atomic_markers: List[str] = [".git", ".hg", "Makefile", "package.json", "requirements.txt", "venv"]
 
     def load_from_file(self, path: Path):
         """Load external YAML config if available."""

@@ -3,7 +3,8 @@ import os
 import sys
 import atexit
 from pathlib import Path
-from .core import database, engine
+from .core import database
+from .core.pipeline.manager import PipelineManager
 from .l8n import Strings
 from .utils.logger import setup_logger, logger, console
 
@@ -68,16 +69,34 @@ def scan(
     
     if reset:
         typer.confirm(Strings.WIPE_CONFIRM, abort=True)
-        # Simple truncate via Peewee
-        database.FileIndex.delete().execute()
+        # Drop and recreate to handle schema changes
+        database.db.drop_tables([database.FileIndex])
+        database.db.create_tables([database.FileIndex])
         logger.warning(Strings.WIPE_SUCCESS)
 
     logger.info(f"Starting scan: {path}")
 
-    # Run the Engine
-    # We pass the path string because sqlite3 expects a string
-    scan_engine = engine.ScanEngine(str(DB_PATH))
-    scan_engine.run(path)
+    # Run the Pipeline
+    manager = PipelineManager(str(DB_PATH))
+    
+    from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
+    
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(),
+        TaskProgressColumn(),
+        TimeRemainingColumn(),
+        console=console
+    ) as progress:
+        task = progress.add_task(Strings.INDEXING_MSG.format(name=os.path.basename(path)), total=None)
+        
+        def update_progress():
+            progress.advance(task)
+            
+        count = manager.run(path, progress_callback=update_progress)
+        
+    logger.success(Strings.SCAN_COMPLETE.format(total_files=count))
 
 @app.command(help=Strings.STATS_DOC)
 def stats():

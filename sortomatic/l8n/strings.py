@@ -14,7 +14,6 @@ class Strings:
 
     # Engine messages
     PATH_NOT_FOUND = "Path '{path}' does not exist."
-    CRAWLING_MSG = "Crawling {name} to estimate size..."
     INDEXING_MSG = "Indexing {name}..."
     SCAN_COMPLETE = "✨ Scan Complete! Indexed {total_files} files."
 

@@ -10,7 +10,11 @@ dependencies = [
     "typer[all]",
     "peewee",
     "rich",
-    "pyyaml"
+    "pyyaml",
+    "filetype",
+    "ImageHash",
+    "Pillow",
+    "pyacoustid"
 ]
 requires-python = ">=3.8"
 

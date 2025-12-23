@@ -12,24 +12,29 @@ class BaseModel(Model):
         database = db
 
 class FileIndex(BaseModel):
-    """
-    The central inventory. 
-    One row = One physical file on disk.
-    """
     path = CharField(unique=True, index=True, max_length=1024)
     filename = CharField(index=True)
-    extension = CharField(null=True, index=True)
+    extension = CharField(null=True)
     size_bytes = IntegerField()
     modified_at = DateTimeField()
     
-    # Analysis Data
+    # New Field: 'file' or 'bundle' (for atomic folders)
+    entry_type = CharField(default='file', index=True) 
+    
+    # Analysis
     category = CharField(default=None, index=True)
-    content_hash = CharField(null=True, index=True) # MD5/SHA256
+    mime_type = CharField(null=True)  # Result of 'file' command check
+    
+    # Hashing
+    fast_hash = CharField(null=True, index=True) # e.g. MD5 partial
+    full_hash = CharField(null=True, index=True) # e.g. SHA-256
+    perceptual_hash = CharField(null=True)       # For images
+    
     is_duplicate = BooleanField(default=False)
-    is_atomic = BooleanField(default=False)
+    group_id = CharField(null=True, index=True)  # To group duplicates together
     
     # For the "War Room" (Review phase)
-    action_pending = CharField(null=True) # e.g., 'DELETE', 'MOVE'
+    action_pending = CharField(null=True) # e.g., 'KEEP', 'IGNORE', 'MERGE'
 
 def init_db(db_path: str = "data/sortomatic.db"):
     """
