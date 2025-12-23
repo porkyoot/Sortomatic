@@ -32,4 +32,12 @@ def smart_walk(root: Path) -> Generator[Tuple[str, str], None, None]:
         for f in filenames:
             if any(fnmatch.fnmatch(f, p) for p in settings.ignore_patterns):
                 continue
-            yield (os.path.join(dirpath, f), 'file')
+            
+            full_path = os.path.join(dirpath, f)
+            # Only index regular files (ignore pipes, sockets, devices, etc.)
+            # os.path.isfile follows symlinks, which is generally what we want 
+            # as long as the target is a regular file.
+            if not os.path.isfile(full_path):
+                continue
+                
+            yield (full_path, 'file')
