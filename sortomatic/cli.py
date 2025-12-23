@@ -124,6 +124,11 @@ def _run_pipeline(path: Optional[str], reset: bool, threads: Optional[int], mode
     """
     Common runner for all scan modes.
     """
+    import time
+    import humanize
+    
+    start_time = time.time()
+    
     if threads:
         settings.max_workers = threads
         
@@ -197,19 +202,36 @@ def _run_pipeline(path: Optional[str], reset: bool, threads: Optional[int], mode
         def update_progress():
             progress.advance(task)
             
+        result = None
         if mode == 'all':
             # For 'all' mode, just run index pass here
-            count = manager.run_index(path, update_progress)
+            result = manager.run_index(path, update_progress)
         elif mode == 'index':
-             count = manager.run_index(path, update_progress)
+             result = manager.run_index(path, update_progress)
         elif mode == 'category':
-             count = manager.run_categorize(update_progress)
+             result = manager.run_categorize(update_progress)
         elif mode == 'hash':
-             count = manager.run_hash(update_progress)
+             result = manager.run_hash(update_progress)
         else:
-            count = 0
-            
-    logger.success(Strings.SCAN_COMPLETE.format(total_files=count))
+            result = 0
+    
+    # Handle result - could be int (old) or dict (new)
+    if isinstance(result, dict):
+        count = result['count']
+        total_bytes = result['bytes']
+    else:
+        count = result if result else 0
+        total_bytes = 0
+    
+    elapsed = time.time() - start_time
+    
+    # Build summary message
+    summary_parts = [f"✨ Scan Complete! {count} files"]
+    if total_bytes > 0:
+        summary_parts.append(f"({humanize.naturalsize(total_bytes, binary=True)})")
+    summary_parts.append(f"in {humanize.naturaldelta(elapsed)}")
+    
+    logger.success(" ".join(summary_parts))
     
     # For 'all' mode, continue with categorize and hash passes
     if mode == 'all':

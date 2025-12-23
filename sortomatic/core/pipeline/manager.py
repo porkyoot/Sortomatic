@@ -116,6 +116,7 @@ class PipelineManager:
         """Engine for FileSystem -> DB"""
         buffer = []
         total = 0
+        total_bytes = 0
         executor = get_executor()
         
         # Submit jobs
@@ -125,6 +126,7 @@ class PipelineManager:
             if result:
                 buffer.append(result)
                 total += 1
+                total_bytes += result.get('size_bytes', 0)
                 if progress_callback: progress_callback()
             
             if len(buffer) >= 1000:
@@ -132,7 +134,7 @@ class PipelineManager:
                 buffer = []
         
         if buffer: self._flush_insert(buffer)
-        return total
+        return {'count': total, 'bytes': total_bytes}
 
     def _run_db_pipeline(self, query, worker_func, progress_callback):
         """Engine for DB -> CPU -> DB Update"""
