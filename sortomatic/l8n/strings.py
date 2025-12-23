@@ -3,7 +3,11 @@ class Strings:
     APP_HELP = "Sortomatic: The Elegant File Organizer"
     SCAN_PATH_HELP = "The folder to scan"
     SCAN_RESET_HELP = "Clear database before scanning"
-    SCAN_DOC = "Index a directory into the database."
+    SCAN_DOC = "Scanning pipeline commands."
+    SCAN_ALL_DOC = "Run the full indexing pipeline (Index -> Categorize -> Hash)."
+    SCAN_INDEX_DOC = "Pass 1: Just index file paths and metadata (Fastest)."
+    SCAN_CAT_DOC = "Pass 2: Categorize files that were just indexed."
+    SCAN_HASH_DOC = "Pass 3: Compute hashes for deduplication."
     WIPE_CONFIRM = "Are you sure you want to wipe the database?"
     WIPE_SUCCESS = "Database wiped."
     STATS_DOC = "Show insights about your files."
@@ -14,7 +18,9 @@ class Strings:
 
     # Engine messages
     PATH_NOT_FOUND = "Path '{path}' does not exist."
-    INDEXING_MSG = "Indexing {name}..."
+    INDEXING_MSG = "Indexing ..."
+    CATEGORIZING_MSG = "Categorizing ..."
+    HASHING_MSG = "Hashing ..."
     SCAN_COMPLETE = "✨ Scan Complete! Indexed {total_files} files."
 
     # Categories
