@@ -64,4 +64,8 @@ def setup_logger(level: str = "INFO"):
         force=True # Ensures we overwrite any previous config
     )
 
+    # Quiet down noisy 3rd party libraries
+    logging.getLogger("PIL").setLevel(logging.INFO)
+    logging.getLogger("peewee").setLevel(logging.INFO)
+
 logger = logging.getLogger("sortomatic")

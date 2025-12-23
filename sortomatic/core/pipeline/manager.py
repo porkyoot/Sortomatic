@@ -1,10 +1,10 @@
-import concurrent.futures
 import os
 from datetime import datetime
 from pathlib import Path
 from ..database import FileIndex, db
 from ..scanner import smart_walk
 from .passes import categorization, hashing
+from .executor import get_executor
 
 class PipelineManager:
     def __init__(self, db_path: str, max_workers: int = 4):
@@ -53,23 +53,25 @@ class PipelineManager:
         buffer = []
         
         total = 0
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.workers) as executor:
+        executor = get_executor()
+        from ...utils.logger import logger
+        logger.debug(f"Using {executor._max_workers} threads for analysis")
+        
+        # Submit jobs lazily from the generator
+        future_results = executor.map(self.process_item, smart_walk(root))
+        
+        for result in future_results:
+            if result:
+                buffer.append(result)
+                total += 1
+                if progress_callback: progress_callback()
             
-            # Submit jobs lazily from the generator
-            future_results = executor.map(self.process_item, smart_walk(root))
-            
-            for result in future_results:
-                if result:
-                    buffer.append(result)
-                    total += 1
-                    if progress_callback: progress_callback()
+            # Bulk Insert Batching
+            if len(buffer) >= 1000:
+                self._flush(buffer)
+                buffer = []
                 
-                # Bulk Insert Batching
-                if len(buffer) >= 1000:
-                    self._flush(buffer)
-                    buffer = []
-                    
-            if buffer: self._flush(buffer)
+        if buffer: self._flush(buffer)
         return total
 
     def _flush(self, data):

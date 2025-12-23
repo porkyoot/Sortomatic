@@ -1,4 +1,5 @@
 import yaml
+import os
 from pathlib import Path
 from typing import Dict, List
 from ..l8n import Strings
@@ -18,6 +19,10 @@ class Settings:
         self.categories: Dict[str, List[str]] = DEFAULT_CATEGORIES
         self.ignore_patterns: List[str] = [".git", "__pycache__", ".DS_Store", "node_modules"]
         self.atomic_markers: List[str] = [".git", ".hg", "Makefile", "package.json", "requirements.txt", "venv"]
+        
+        # Performance: Use half the cores by default to keep the system responsive
+        cpu_count = os.cpu_count() or 4
+        self.max_workers = max(1, cpu_count // 2)
 
     def load_from_file(self, path: Path):
         """Load external YAML config if available."""

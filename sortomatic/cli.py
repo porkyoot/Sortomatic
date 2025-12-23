@@ -3,7 +3,9 @@ import os
 import sys
 import atexit
 from pathlib import Path
+from typing import Optional
 from .core import database
+from .core.config import settings
 from .core.pipeline.manager import PipelineManager
 from .l8n import Strings
 from .utils.logger import setup_logger, logger, console
@@ -46,22 +48,30 @@ def ensure_environment():
 
 @app.callback()
 def main(
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show DEBUG logs")
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="Show DEBUG logs"),
+    threads: Optional[int] = typer.Option(None, "--threads", "-j", help="Max threads to use")
 ):
     """
     Global entry point callback.
     """
+    if threads:
+        settings.max_workers = threads
+        
     log_level = "DEBUG" if verbose else "INFO"
     setup_logger(log_level)
 
 @app.command(help=Strings.SCAN_DOC)
 def scan(
     path: str = typer.Argument(..., help=Strings.SCAN_PATH_HELP),
-    reset: bool = typer.Option(False, "--reset", help=Strings.SCAN_RESET_HELP)
+    reset: bool = typer.Option(False, "--reset", help=Strings.SCAN_RESET_HELP),
+    threads: Optional[int] = typer.Option(None, "--threads", "-j", help="Max threads to use")
 ):
     """
     Index a directory into the database.
     """
+    if threads:
+        settings.max_workers = threads
+        
     ensure_environment()
     
     # Initialize the Peewee ORM (creates tables)
@@ -77,7 +87,7 @@ def scan(
     logger.info(f"Starting scan: {path}")
 
     # Run the Pipeline
-    manager = PipelineManager(str(DB_PATH))
+    manager = PipelineManager(str(DB_PATH), max_workers=settings.max_workers)
     
     from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
     

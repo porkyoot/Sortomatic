@@ -61,6 +61,10 @@ def close_db():
     """
     Closes the database connection.
     """
-    if not db.is_closed():
-        db.close()
-        logger.debug("Database connection closed.")
+    try:
+        if not db.is_closed():
+            db.close()
+            logger.debug("Database connection closed.")
+    except AttributeError:
+        # Proxy was never initialized
+        pass
