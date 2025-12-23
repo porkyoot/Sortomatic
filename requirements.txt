@@ -9,6 +9,6 @@ pyacoustid
 humanize
 xxhash
 nicegui
-
+psutil
 pytest
 pytest-mock

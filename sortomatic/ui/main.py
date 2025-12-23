@@ -52,19 +52,34 @@ def start_app(port: int, theme: str, dark: bool, path: str = None):
             on_theme_change=lambda t, d: bridge.emit("theme_changed", {'name': t, 'is_dark': d})
         )
         
+        # Metrics history buffers
+        history = {
+            'cpu': [0.0] * 50,
+            'gpu': [0.0] * 50,
+            'ram': [0.0] * 50,
+            'disk': [0.0] * 50
+        }
+
         # Update status badges periodically
         async def update_status_badges():
             if not client.has_socket_connection:
                 return
             
             try:
-                # 1. Update Metrics (Histograms)
-                import random
-                cpu_data = [random.random() for _ in range(20)]
-                gpu_data = [random.random() for _ in range(20)]
-                ram_data = [random.random() for _ in range(20)]
-                disk_data = [random.random() for _ in range(20)]
-                status_bar.update_metrics(cpu_data, gpu_data, ram_data, disk_data)
+                # 1. Update Metrics (Real Data)
+                metrics = await bridge.request("get_system_metrics")
+                if metrics:
+                    for key in ['cpu', 'gpu', 'ram', 'disk']:
+                         val = metrics.get(key, 0.0)
+                         history[key].append(val)
+                         history[key] = history[key][-50:] # Keep buffer limited
+                    
+                    status_bar.update_metrics(
+                        history['cpu'], 
+                        history['gpu'], 
+                        history['ram'], 
+                        history['disk']
+                    )
                 
                 # 2. Update System Status
                 status = await bridge.request("get_system_status")

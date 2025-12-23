@@ -1,5 +1,6 @@
 from sortomatic.core.bridge import bridge
 from sortomatic.core.database import get_children
+from sortomatic.core.metrics import metrics_monitor
 from sortomatic.utils.logger import logger
 
 def init_bridge_handlers():
@@ -57,5 +58,13 @@ def init_bridge_handlers():
             "database": db_state,
             "scan": scan_state
         }
+
+    # 3. System Metrics Request
+    @bridge.handle_request("get_system_metrics")
+    async def handle_get_system_metrics(payload):
+        """
+        Returns performance metrics (CPU, RAM, etc).
+        """
+        return metrics_monitor.get_all_metrics()
 
     logger.info("Bridge handlers initialized.")
