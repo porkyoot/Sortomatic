@@ -25,6 +25,9 @@ except ImportError:
 
 def compute_hashes(ctx: dict):
     """Computes standard and perceptual hashes with a safety timeout."""
+    import os
+    if not os.path.isfile(ctx['path']):
+        return ctx
     
     def _worker():
         fpath = ctx['path']

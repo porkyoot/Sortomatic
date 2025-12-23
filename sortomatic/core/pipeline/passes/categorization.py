@@ -12,6 +12,10 @@ def detect_type(ctx: dict):
     """
     Pass 1: Detects category and mime type.
     """
+    import os
+    if not os.path.isfile(ctx['path']):
+        return ctx
+        
     path = Path(ctx['path'])
     
     # 1. Extension Strategy
