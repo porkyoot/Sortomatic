@@ -86,9 +86,9 @@ def generate_css_variables(theme: Theme) -> str:
         --header-height: 60px;
         
         /* SHADOWS (Semantic) */
-        --shadow-subtle: 0 1px 2px 0 color-mix(in srgb, var(--c-text-main), transparent 95%);
-        --shadow-card: 0 4px 6px -1px color-mix(in srgb, var(--c-text-main), transparent 90%), 0 2px 4px -2px color-mix(in srgb, var(--c-text-main), transparent 90%);
-        --shadow-float: 0 10px 15px -3px color-mix(in srgb, var(--c-text-main), transparent 90%);
+        --shadow-subtle: 0 1px 2px 0 color-mix(in srgb, var(--c-text-active), transparent 90%);
+        --shadow-card: 0 4px 6px -1px color-mix(in srgb, var(--c-text-active), transparent 80%), 0 2px 4px -2px color-mix(in srgb, var(--c-text-active), transparent 80%);
+        --shadow-float: 0 10px 15px -3px color-mix(in srgb, var(--c-text-active), transparent 80%);
 
         /* QUASAR OVERRIDES */
         --q-primary: {theme.colors.primary} !important;

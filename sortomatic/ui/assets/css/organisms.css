@@ -85,11 +85,8 @@
 .s-terminal {
     background-color: var(--c-surface-1);
     /* Solarized Black */
-    border: 1px solid var(--c-surface-3);
-    /* Solarized Border */
-    border-radius: var(--r-md);
+    padding: 0;
     overflow: hidden;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
     font-family: var(--font-mono);
 }
 
@@ -107,7 +104,6 @@
     width: 0.5rem;
     height: 0.5rem;
     border-radius: 9999px;
-    opacity: 0.8;
     /* Slightly more visible */
 }
 

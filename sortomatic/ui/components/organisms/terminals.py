@@ -14,7 +14,6 @@ def AppTerminal(
     # Terminal uses a very subtle, dark variant. 
     # Since AppCard is a function returning ui.card, we use it as context.
     card = AppCard(variant='', padding='', tight=True) 
-    card.classes(remove='s-card') # clear AppCard base
     card.classes('s-terminal w-full flex flex-col')
     
     with card:
