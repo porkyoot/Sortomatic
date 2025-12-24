@@ -1,33 +1,37 @@
 from nicegui import ui
 import asyncio
 
-class LazyCardList(ui.column):
-    def __init__(self, item_provider):
-        super().__init__()
-        self.classes('w-full gap-4') # Consistent list gap
-        self.provider = item_provider
-        self.is_loaded = False
-        
-        # Initial Render: Skeleton
-        with self:
-            self.skeletons = ui.column().classes('w-full gap-4')
-            with self.skeletons:
-                for _ in range(5):
-                    with ui.card().classes('s-skeleton'):
-                        pass
-                        
-        # Trigger load
-        ui.timer(0.1, self.load_real_data, once=True)
-
-    async def load_real_data(self):
+def LazyCardList(item_provider, card_renderer=None):
+    """
+    A list that shows skeletons while loading data asynchronously.
+    """
+    container = ui.column().classes('w-full gap-4')
+    
+    # Initial Render: Skeleton
+    with container:
+        skeletons = ui.column().classes('w-full gap-4')
+        with skeletons:
+            for _ in range(5):
+                with ui.card().classes('s-skeleton'):
+                    pass
+    
+    async def load_real_data():
         # Allow UI to render first
         await asyncio.sleep(0.1) 
-        items = self.provider() # Fetch data
+        items = item_provider() # Fetch data
         
-        self.skeletons.set_visibility(False)
-        self.clear() # Remove skeletons
+        skeletons.set_visibility(False)
+        container.clear() # Remove skeletons
         
         # Render real cards
-        with self:
+        with container:
             for item in items:
-                self._render_card(item)
+                if card_renderer:
+                    card_renderer(item)
+                # If no renderer provided, we just skip or do a default
+    
+    # Trigger load
+    ui.timer(0.1, load_real_data, once=True)
+    
+    container.load_real_data = load_real_data
+    return container

@@ -9,270 +9,175 @@ from ....core.types import ScanContext
 from ...protocols import FileTreeDataSource
 from ...datasources import BridgeFileTreeDataSource
 
-class FileTreeRow(ui.row):
+def FileTreeRow(
+    name: str, 
+    level: int, 
+    is_dir: bool, 
+    theme: Theme,
+    file_data: Optional[ScanContext] = None,
+    show_category: bool = True,
+    show_size: bool = True,
+    show_date: bool = True,
+    expanded: bool = False,
+    toggle_func: Optional[Callable] = None
+):
     """
     A single row in the file tree with aligned columns.
     """
-    def __init__(self, 
-                 name: str, 
-                 level: int, 
-                 is_dir: bool, 
-                 theme: Theme,
-                 file_data: Optional[ScanContext] = None,
-                 show_category: bool = True,
-                 show_size: bool = True,
-                 show_date: bool = True,
-                 expanded: bool = False,
-                 toggle_func: Optional[Callable] = None):
-        super().__init__()
-        self.classes('s-tree-row s-tree-min-width')
-        # self.style('min-width: 800px;') # Moved to CSS class
-        
-        with self:
-            # 1. Name Column (Tree Column)
-            indent = level * 24
-            with ui.row().classes('items-center no-wrap').style(f'width: 40%; padding-left: {indent}px;'):
-                if is_dir:
-                    icon = "expand_more" if expanded else "chevron_right"
-                    ui.button(icon=icon, on_click=toggle_func).props('flat dense size=sm').classes('mr-1 color-[var(--app-text-sec)]')
-                    ui.icon("folder", color="var(--q-primary)").classes('mr-2')
-                else:
-                    ui.element('div').classes('w-8') # Placeholder for chevron
-                    category = file_data.category if file_data else "Other"
-                    ui.icon(CategoryStyles.get_icon(category), color=CategoryStyles.get_color(category, theme)).classes('mr-2')
+    with ui.row().classes('s-tree-row s-tree-min-width') as row:
+        # 1. Name Column (Tree Column)
+        indent = level * 24
+        with ui.row().classes('items-center no-wrap').style(f'width: 40%; padding-left: {indent}px;'):
+            if is_dir:
+                icon = "expand_more" if expanded else "chevron_right"
+                ui.button(icon=icon, on_click=toggle_func).props('flat dense size=sm').classes('mr-1 color-[var(--app-text-sec)]')
+                ui.icon("folder", color="var(--q-primary)").classes('mr-2')
+            else:
+                ui.element('div').classes('w-8') # Placeholder for chevron
+                category = file_data.category if file_data else "Other"
+                ui.icon(CategoryStyles.get_icon(category), color=CategoryStyles.get_color(category, theme)).classes('mr-2')
+            
+            ui.label(name).classes('text-sm font-medium truncate')
+
+        # 2. Category Column
+        with ui.element('div').style('width: 15%;'):
+            if show_category and not is_dir and file_data:
+                category = file_data.category or "Other"
+                CategoryBadge(category, theme, variant="glass")
+
+        # 3. Size Column
+        with ui.element('div').style('width: 20%;'):
+            if show_size and not is_dir and file_data:
+                val, unit, color = format_size(file_data.size_bytes)
+                AppBadge(label=unit, value=val, color=color, variant="glass", icon="storage")
+
+        # 4. Date Column
+        with ui.element('div').style('width: 25%;'):
+            if show_date and not is_dir and file_data:
+                date_str, color = format_date_human(file_data.modified_at)
+                AppBadge(label="", value=date_str, color=color, variant="glass", icon="calendar_month")
                 
-                ui.label(name).classes('text-sm font-medium truncate')
+    return row
 
-            # 2. Category Column
-            with ui.element('div').style('width: 15%;'):
-                if show_category and not is_dir and file_data:
-                    category = file_data.category or "Other"
-                    CategoryBadge(category, theme, variant="glass")
-
-            # 3. Size Column
-            with ui.element('div').style('width: 20%;'):
-                if show_size and not is_dir and file_data:
-                    val, unit, color = format_size(file_data.size_bytes)
-                    AppBadge(label=unit, value=val, color=color, variant="glass", icon="storage")
-
-            # 4. Date Column
-            with ui.element('div').style('width: 25%;'):
-                if show_date and not is_dir and file_data:
-                    date_str, color = format_date_human(file_data.modified_at)
-                    AppBadge(label="", value=date_str, color=color, variant="glass", icon="calendar_month")
-
-class FileTree(ui.column):
+def FileTree(
+    root_path: str, 
+    theme: Theme,
+    data_source: Optional[FileTreeDataSource] = None,
+    show_category: bool = True,
+    show_size: bool = True,
+    show_date: bool = True
+):
     """
     Powerful, lazy-loading file tree with sorting and configurable columns.
-    
-    Features:
-    - True lazy loading: Only fetches children when folders are expanded
-    - Protocol-based data source: Works with any FileTreeDataSource implementation
-    - State management: refresh() and reload() for dynamic updates
-    - Incremental rendering: No full-tree re-renders on expansion
-    
-    Usage:
-        # Default with Bridge data source
-        tree = FileTree(root_path="/", theme=theme)
-        
-        # Custom data source
-        tree = FileTree(root_path="/", data_source=MyDataSource(), theme=theme)
-        
-        # Apply filters and reload
-        tree.reload(filters={'search': 'test.py', 'category': 'Code'})
-        
-        # Refresh current view
-        tree.refresh()
     """
-    def __init__(self, 
-                 root_path: str, 
-                 theme: Theme,
-                 data_source: Optional[FileTreeDataSource] = None,
-                 show_category: bool = True,
-                 show_size: bool = True,
-                 show_date: bool = True):
-        super().__init__()
-        self.classes('s-tree-container')
-        self.root_path = root_path
-        self.theme = theme
-        self.show_category = show_category
-        self.show_size = show_size
-        self.show_date = show_date
-        
-        # Data source (defaults to Bridge if not provided)
-        self.data_source = data_source or BridgeFileTreeDataSource()
-        
-        self.sort_by = "name"
-        self.sort_desc = False
-        
-        # Filter criteria (dict for extensibility)
-        self.filters: Dict[str, Any] = {}
-        
-        # State management for expansion
-        self.expanded_paths = set()
-        
-        # Track DOM containers for each folder path
-        # This allows us to insert/remove children without re-rendering everything
-        self.folder_containers: Dict[str, ui.column] = {}
-        
-        # Track folder rows for updating chevron icons
-        self.folder_rows: Dict[str, tuple] = {}  # path -> (row, button)
-        
-        self.render()
+    container = ui.column().classes('s-tree-container')
+    
+    # State managed as attributes on the container object (for easy access in methods)
+    container.root_path = root_path
+    container.theme = theme
+    container.show_category = show_category
+    container.show_size = show_size
+    container.show_date = show_date
+    container.data_source = data_source or BridgeFileTreeDataSource()
+    container.sort_by = "name"
+    container.sort_desc = False
+    container.filters = {}
+    container.expanded_paths = set()
+    container.folder_containers = {}
+    container.folder_rows = {}
+    container.content_col = None
 
-    def set_filter(self, text: str):
-        """
-        Legacy method for backward compatibility.
-        Sets a search filter and re-renders the tree.
-        
-        Args:
-            text: Search text to filter files/folders
-        """
-        self.filters['search'] = text
-        self.render()
+    def set_filter(text: str):
+        container.filters['search'] = text
+        render()
 
-    def reload(self, filters: Optional[Dict[str, Any]] = None):
-        """
-        Reload the tree with new filter criteria.
-        Clears all expanded state and re-fetches from root.
-        
-        Args:
-            filters: New filter criteria dict (e.g., {'search': 'test', 'category': 'Image'})
-                    If None, keeps current filters
-        
-        Usage:
-            tree.reload({'search': 'test.py'})
-            tree.reload({'category': 'Code', 'min_size': 1024})
-        """
+    def reload(filters: Optional[Dict[str, Any]] = None):
         if filters is not None:
-            self.filters = filters
-        
-        # Clear all state
-        self.expanded_paths.clear()
-        
-        # Re-render from root
-        self.render()
+            container.filters = filters
+        container.expanded_paths.clear()
+        render()
 
-    def refresh(self):
-        """
-        Refresh the current tree view without changing filters or expansion state.
-        Re-fetches data for currently expanded folders.
-        
-        Usage:
-            tree.refresh()  # After file system changes
-        """
-        # Re-render preserving expanded state
-        self.render()
+    def refresh():
+        render()
 
-    def sort_tree(self, field: str):
-        if self.sort_by == field:
-            self.sort_desc = not self.sort_desc
+    def sort_tree(field: str):
+        if container.sort_by == field:
+            container.sort_desc = not container.sort_desc
         else:
-            self.sort_by = field
-            self.sort_desc = False
-        self.render()
+            container.sort_by = field
+            container.sort_desc = False
+        render()
 
-    def render(self):
-        """
-        Rebuilds the ENTIRE tree from scratch.
-        Only renders the root level initially + any expanded folders.
-        """
-        self.clear()
-        self.folder_containers.clear()
-        self.folder_rows.clear()
+    def render():
+        container.clear()
+        container.folder_containers.clear()
+        container.folder_rows.clear()
         
-        with self:
+        with container:
             # 1. Header
             with ui.row().classes('s-tree-header w-full'):
-                self._header_cell("Name", "name", "40%")
-                self._header_cell("Category", "category", "15%")
-                self._header_cell("Size", "size", "20%")
-                self._header_cell("Modified", "date", "25%")
+                _header_cell("Name", "name", "40%")
+                _header_cell("Category", "category", "15%")
+                _header_cell("Size", "size", "20%")
+                _header_cell("Modified", "date", "25%")
             
             # 2. Tree Container (Scroll Area)
             with ui.scroll_area().classes('s-tree-scroll-area'):
-                self.content_col = ui.column().classes('w-full gap-0')
+                container.content_col = ui.column().classes('w-full gap-0')
                 # Kick off rendering asynchronously
-                ui.timer(0.01, lambda: self._render_tree(), once=True)
+                ui.timer(0.01, lambda: _render_tree(), once=True)
 
-    def _header_cell(self, label: str, field: str, width: str):
+    def _header_cell(label: str, field: str, width: str):
         with ui.element('div').style(f'width: {width};').classes('s-tree-header__cell group'):
             with ui.row().classes('items-center gap-1'):
                 ui.label(label).classes('text-[10px] uppercase font-bold tracking-widest opacity-50')
-                if self.sort_by == field:
-                    icon = "arrow_upward" if not self.sort_desc else "arrow_downward"
+                if container.sort_by == field:
+                    icon = "arrow_upward" if not container.sort_desc else "arrow_downward"
                     ui.icon(icon, size='12px').classes('text-[var(--c-primary)]')
-            ui.on('click', lambda: self.sort_tree(field))
+            ui.on('click', lambda field=field: sort_tree(field))
 
-    async def _render_tree(self):
-        """
-        Renders the entire tree structure based on expanded_paths.
-        """
-        await self._render_level_recursive(self.root_path, 0, self.content_col)
+    async def _render_tree():
+        await _render_level_recursive(container.root_path, 0, container.content_col)
 
-    async def _render_level_recursive(self, path: str, level: int, parent_container: ui.column):
-        """
-        Fetches and renders a single level, then recursively renders expanded children.
-        Uses the data_source to fetch children (protocol-based, decoupled from Bridge).
-        This is called during full re-renders (e.g., after sorting changes).
-        """
-        # Fetch children using the data source (not hardcoded bridge!)
-        folders, files_dicts = await self.data_source.get_children(path, self.filters)
-        
-        # Convert dicts to ScanContext for dot access in UI
+    async def _render_level_recursive(path: str, level: int, parent_container: ui.column):
+        folders, files_dicts = await container.data_source.get_children(path, container.filters)
         files = [ScanContext(**f) for f in files_dicts]
-        
-        # Apply sorting
-        folders, files = self._sort_items(folders, files)
+        folders, files = _sort_items(folders, files)
 
         with parent_container:
-            # Render Folders
             for folder in folders:
                 folder_path = os.path.join(path, folder)
-                is_expanded = folder_path in self.expanded_paths
-                
-                # Create folder row with chevron button
-                row, button = self._create_folder_row(
-                    folder, level, is_expanded, folder_path
-                )
-                self.folder_rows[folder_path] = (row, button)
-                
-                # Create a container for this folder's children
+                is_expanded = folder_path in container.expanded_paths
+                row, button = _create_folder_row(folder, level, is_expanded, folder_path)
+                container.folder_rows[folder_path] = (row, button)
                 children_container = ui.column().classes('w-full gap-0')
-                self.folder_containers[folder_path] = children_container
-                
-                # Only render children if this folder is expanded
+                container.folder_containers[folder_path] = children_container
                 if is_expanded:
-                    await self._render_level_recursive(folder_path, level + 1, children_container)
-            
-            # Render Files
+                    await _render_level_recursive(folder_path, level + 1, children_container)
             for fileinfo in files:
-                self._create_file_row(fileinfo, level)
+                _create_file_row(fileinfo, level)
 
-    def _sort_items(self, folders: List[str], files: List[ScanContext]):
-        """Apply current sorting to folders and files."""
-        if self.sort_by == "name":
-            folders.sort(reverse=self.sort_desc)
-            files.sort(key=lambda f: f.filename, reverse=self.sort_desc)
-        elif self.sort_by == "size":
-            files.sort(key=lambda f: f.size_bytes, reverse=self.sort_desc)
-        elif self.sort_by == "date":
-            files.sort(key=lambda f: f.modified_at, reverse=self.sort_desc)
-        elif self.sort_by == "category":
-            files.sort(key=lambda f: f.category or "", reverse=self.sort_desc)
+    def _sort_items(folders: List[str], files: List[ScanContext]):
+        if container.sort_by == "name":
+            folders.sort(reverse=container.sort_desc)
+            files.sort(key=lambda f: f.filename, reverse=container.sort_desc)
+        elif container.sort_by == "size":
+            files.sort(key=lambda f: f.size_bytes, reverse=container.sort_desc)
+        elif container.sort_by == "date":
+            files.sort(key=lambda f: f.modified_at, reverse=container.sort_desc)
+        elif container.sort_by == "category":
+            files.sort(key=lambda f: f.category or "", reverse=container.sort_desc)
         return folders, files
 
-    def _create_folder_row(self, name: str, level: int, expanded: bool, path: str):
-        """Creates a folder row and returns (row, button) for later updates."""
+    def _create_folder_row(name: str, level: int, expanded: bool, path: str):
         row = FileTreeRow(
             name=name, 
             level=level, 
             is_dir=True, 
-            theme=self.theme,
+            theme=container.theme,
             expanded=expanded,
-            toggle_func=lambda p=path: self._toggle_expansion_incremental(p)
+            toggle_func=lambda p=path: _toggle_expansion_incremental(p)
         )
-        # Find the button within the row (it's the first button)
         button = None
         for child in row:
             if isinstance(child, ui.button):
@@ -280,56 +185,49 @@ class FileTree(ui.column):
                 break
         return row, button
 
-    def _create_file_row(self, fileinfo: ScanContext, level: int):
-        """Creates a file row."""
+    def _create_file_row(fileinfo: ScanContext, level: int):
         return FileTreeRow(
             name=fileinfo.filename,
             level=level,
             is_dir=False,
-            theme=self.theme,
+            theme=container.theme,
             file_data=fileinfo,
-            show_category=self.show_category,
-            show_size=self.show_size,
-            show_date=self.show_date
+            show_category=container.show_category,
+            show_size=container.show_size,
+            show_date=container.show_date
         )
 
-    async def _toggle_expansion_incremental(self, path: str):
-        """
-        Toggles folder expansion incrementally.
-        Only fetches and renders the children of this specific folder.
-        NO full tree re-render!
-        """
-        is_expanding = path not in self.expanded_paths
-        
+    async def _toggle_expansion_incremental(path: str):
+        is_expanding = path not in container.expanded_paths
         if is_expanding:
-            # ADD children
-            self.expanded_paths.add(path)
-            
-            # Update chevron icon
-            if path in self.folder_rows:
-                _, button = self.folder_rows[path]
+            container.expanded_paths.add(path)
+            if path in container.folder_rows:
+                _, button = container.folder_rows[path]
                 if button:
                     button.props('icon=expand_more')
                     button.update()
             
-            # Fetch and render children
-            container = self.folder_containers.get(path)
-            if container:
-                # Get the level from the path depth
-                level = path.count(os.sep) - self.root_path.count(os.sep) + 1
-                await self._render_level_recursive(path, level, container)
+            c = container.folder_containers.get(path)
+            if c:
+                level = path.count(os.sep) - container.root_path.count(os.sep) + 1
+                await _render_level_recursive(path, level, c)
         else:
-            # REMOVE children
-            self.expanded_paths.remove(path)
-            
-            # Update chevron icon
-            if path in self.folder_rows:
-                _, button = self.folder_rows[path]
+            container.expanded_paths.remove(path)
+            if path in container.folder_rows:
+                _, button = container.folder_rows[path]
                 if button:
                     button.props('icon=chevron_right')
                     button.update()
             
-            # Clear children container
-            container = self.folder_containers.get(path)
-            if container:
-                container.clear()
+            c = container.folder_containers.get(path)
+            if c:
+                c.clear()
+
+    # Attach methods for external use
+    container.set_filter = set_filter
+    container.reload = reload
+    container.refresh = refresh
+    container.sort_tree = sort_tree
+    
+    render()
+    return container

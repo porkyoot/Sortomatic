@@ -4,86 +4,75 @@ from ...theme import Theme
 from ..atoms.buttons import AppButton
 from ..atoms.inputs.toggles import AppToggle
 
-class ScanControls(ui.row):
+def ScanControls(
+    state: str = "idle", 
+    theme: Theme = None,
+    on_play: Optional[Callable] = None,
+    on_pause: Optional[Callable] = None,
+    on_resume: Optional[Callable] = None,
+    on_restart: Optional[Callable] = None,
+    on_fast_mode: Optional[Callable] = None
+):
     """
     A context-aware scan control component.
     Switches buttons based on scan state and includes a fast-mode toggle.
     """
-    
     # State constants
     IDLE = "idle"
     RUNNING = "running"
     PAUSED = "paused"
     COMPLETED = "completed"
 
-    def __init__(self, 
-                 state: str = "idle", 
-                 theme: Theme = None,
-                 on_play: Optional[Callable] = None,
-                 on_pause: Optional[Callable] = None,
-                 on_resume: Optional[Callable] = None,
-                 on_restart: Optional[Callable] = None,
-                 on_fast_mode: Optional[Callable] = None):
-        super().__init__()
-        self.classes('s-control-group')
-        
-        self.state = state
-        self.theme = theme
-        self.on_play = on_play
-        self.on_pause = on_pause
-        self.on_resume = on_resume
-        self.on_restart = on_restart
-        self.on_fast_mode = on_fast_mode
-        
-        self.render()
+    container = ui.row().classes('s-control-group')
+    container.current_state = state
 
-    def set_state(self, new_state: str):
-        self.state = new_state
-        self.render()
+    def set_state(new_state: str):
+        container.current_state = new_state
+        _render()
 
-    def render(self):
-        self.clear()
-        with self:
+    def _render():
+        container.clear()
+        with container:
             # 1. State-based Buttons
             with ui.row().classes('items-center gap-2'):
-                if self.state == self.IDLE:
+                if container.current_state == IDLE:
                     AppButton(
                         label="Start Scan",
                         icon="play_arrow",
                         variant="primary",
-                        on_click=self.on_play
-                    ).style(f'--c-primary: {self.theme.colors.success if self.theme else "var(--c-success)"}')
+                        on_click=on_play
+                    ).style(f'--c-primary: {theme.colors.success if theme else "var(--c-success)"}')
                 
-                elif self.state == self.RUNNING:
+                elif container.current_state == RUNNING:
                     AppButton(
                         label="Pause",
                         icon="pause",
                         variant="primary",
-                        on_click=self.on_pause
-                    ).style(f'--c-primary: {self.theme.colors.warning if self.theme else "var(--c-warning)"}')
+                        on_click=on_pause
+                    ).style(f'--c-primary: {theme.colors.warning if theme else "var(--c-warning)"}')
                 
-                elif self.state == self.PAUSED:
+                elif container.current_state == PAUSED:
                     AppButton(
                         label="Resume",
                         icon="play_arrow",
                         variant="primary",
-                        on_click=self.on_resume
-                    ).style(f'--c-primary: {self.theme.colors.blue if self.theme else "var(--c-primary)"}')
+                        on_click=on_resume
+                    ).style(f'--c-primary: {theme.colors.blue if theme else "var(--c-primary)"}')
                     
                     AppButton(
                         label="Restart",
                         icon="refresh",
                         variant="primary",
-                        on_click=self.on_restart
-                    ).style(f'--c-primary: {self.theme.colors.error if self.theme else "var(--c-error)"}')
+                        on_click=on_restart
+                    ).style(f'--c-primary: {theme.colors.error if theme else "var(--c-error)"}')
 
-                elif self.state == self.COMPLETED:
+                elif container.current_state == COMPLETED:
                     AppButton(
                         label="Restart Scan",
                         icon="refresh",
                         variant="primary",
-                        on_click=self.on_restart
-                    ).style(f'--c-primary: {self.theme.colors.error if self.theme else "var(--c-error)"}')
+                        on_click=on_restart
+                    ).style(f'--c-primary: {theme.colors.error if theme else "var(--c-error)"}')
 
             # 2. Separator
             ui.element('div').classes('s-separator-vertical')
@@ -93,5 +82,9 @@ class ScanControls(ui.row):
                 label="Fast Mode",
                 icon="bolt",
                 tooltip="Enable high-concurrency partial scanning",
-                on_change=self.on_fast_mode
+                on_change=on_fast_mode
             )
+
+    container.set_state = set_state
+    _render()
+    return container

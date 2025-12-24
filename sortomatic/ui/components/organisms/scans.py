@@ -5,43 +5,43 @@ from ..atoms.cards import AppCard
 from ..atoms.badges import StatusBadge
 from ..molecules.scan_controls import ScanControls
 
-class ScanCard(AppCard):
+def ScanCard(
+    name: str, 
+    state: str = "idle", # "running", "idle", "paused", "completed", "error"
+    progress: float = 0.0, # 0.0 to 100.0
+    eta: str = "Calculating...",
+    theme: Theme = None,
+    on_play: Optional[Callable] = None,
+    on_pause: Optional[Callable] = None,
+    on_resume: Optional[Callable] = None,
+    on_restart: Optional[Callable] = None,
+    on_fast_mode: Optional[Callable] = None
+):
     """
     A comprehensive scan task card showing progress, state, and controls.
     """
-    def __init__(self, 
-                 name: str, 
-                 state: str = "idle", # "running", "idle", "paused", "completed", "error"
-                 progress: float = 0.0, # 0.0 to 100.0
-                 eta: str = "Calculating...",
-                 theme: Theme = None,
-                 on_play: Optional[Callable] = None,
-                 on_pause: Optional[Callable] = None,
-                 on_resume: Optional[Callable] = None,
-                 on_restart: Optional[Callable] = None,
-                 on_fast_mode: Optional[Callable] = None):
-        
-        super().__init__(variant='glass', padding='p-4')
-        self.classes('gap-4')
-        
-        self.state = state
-        self.progress = progress
-        self.eta = eta
-        self.theme = theme
+    # Internal variables for state (if needed for refresh)
+    card_state = {
+        'state': state,
+        'progress': progress,
+        'eta': eta
+    }
+    
+    # Internal render function
+    def _render_content():
+        card.clear()
         
         # Internal state mapping to ScanControls states
-        # Map "running" to "running", "idle" to "idle", "paused" to "paused", etc.
-        # "error" also maps to specific visual
-        control_state = state
-        if state == "error":
+        control_state = card_state['state']
+        if card_state['state'] == "error":
             control_state = "idle" # Allow restart
-        
-        with self:
+            
+        with card:
             # Row 1: Title and Controls
             with ui.row().classes('w-full items-center justify-between no-wrap'):
                 ui.label(name).classes('s-scan-card__title')
                 
-                self.controls = ScanControls(
+                ScanControls(
                     state=control_state,
                     theme=theme,
                     on_play=on_play,
@@ -55,18 +55,18 @@ class ScanCard(AppCard):
             with ui.row().classes('w-full items-center gap-3 no-wrap'):
                 # Map state to StatusBadge state
                 badge_state = "unknown"
-                if state == "running": badge_state = "pending"
-                if state == "completed": badge_state = "ready"
-                if state == "error": badge_state = "error"
-                if state == "idle": badge_state = "unknown"
-                if state == "paused": badge_state = "pending"
+                s = card_state['state']
+                if s == "running": badge_state = "pending"
+                if s == "completed": badge_state = "ready"
+                if s == "error": badge_state = "error"
+                if s == "idle": badge_state = "unknown"
+                if s == "paused": badge_state = "pending"
                 
                 StatusBadge(label="Status", state=badge_state, theme=theme)
                 
                 # Colored state name
-                # Colored state name
                 state_color = StatusStyles.get_color(badge_state, theme)
-                ui.label(state.upper()).classes('s-scan-card__state').style(f'color: {state_color};')
+                ui.label(s.upper()).classes('s-scan-card__state').style(f'color: {state_color};')
                 
                 ui.element('div').classes('flex-grow') # Spacer
                 
@@ -74,7 +74,7 @@ class ScanCard(AppCard):
                 with ui.row().classes('items-center gap-4'):
                     # Percent
                     with ui.row().classes('items-center gap-1'):
-                        ui.label(f'{progress:.1f}').classes('s-scan-card__percent')
+                        ui.label(f"{card_state['progress']:.1f}").classes('s-scan-card__percent')
                         ui.label('%').classes('s-scan-card__percent-sub')
                     
                     # Vertical divider
@@ -83,19 +83,21 @@ class ScanCard(AppCard):
                     # ETA
                     with ui.row().classes('items-center gap-2'):
                         ui.icon('schedule', size='16px').classes('opacity-40')
-                        ui.label(eta).classes('s-scan-card__eta')
+                        ui.label(card_state['eta']).classes('s-scan-card__eta')
 
-    def update_progress(self, progress: float, eta: str):
-        self.progress = progress
-        self.eta = eta
-        # Since this is a simple component without data binding on these specific labels yet, 
-        # a full refresh might be needed or we could target the labels.
-        # For a premium component, we'll usually use ui.label().bind_text_from(...) 
-        # but here we'll just clear and re-render or use better binding if we had a state object.
-        # Internal refresh for demo purposes:
-        self.render()
+    def update_progress(new_progress: float, new_eta: str):
+        card_state['progress'] = new_progress
+        card_state['eta'] = new_eta
+        _render_content()
 
-    def render(self):
-        # In a real app we'd use reactive state, but for this component definition
-        # we'll assume the parent refreshes or we use binding.
-        pass
+    def update_state(new_state: str):
+        card_state['state'] = new_state
+        _render_content()
+
+    card = AppCard(variant='glass', padding='p-4')
+    card.classes('gap-4')
+    card.update_progress = update_progress
+    card.update_state = update_state
+    
+    _render_content()
+    return card
