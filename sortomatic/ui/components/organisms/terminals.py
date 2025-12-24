@@ -15,7 +15,7 @@ def AppTerminal(
     # Since AppCard is a function returning ui.card, we use it as context.
     card = AppCard(variant='', padding='', tight=True) 
     card.classes(remove='s-card') # clear AppCard base
-    card.classes('s-terminal')
+    card.classes('s-terminal w-full flex flex-col')
     
     with card:
         # Header
@@ -31,7 +31,16 @@ def AppTerminal(
                 ui.element('div').classes('s-terminal__dot s-terminal__dot--green')
 
         # Scroll Area
-        scroll = ui.scroll_area().classes('w-full bg-transparent').style(f'height: {height};')
+        # Handle height: if it contains 'h-' or 'min-h-', treat as class for responsiveness.
+        # Otherwise treat as fixed CSS value for style attribute.
+        is_css_class = any(x in height for x in ['h-', 'min-h-', 'max-h-'])
+        
+        scroll = ui.scroll_area().classes('w-full')
+        if is_css_class:
+            scroll.classes(height)
+        else:
+            scroll.style(f'height: {height};')
+            
         with scroll:
             content = ui.html('', sanitize=False).classes('s-terminal__content')
     

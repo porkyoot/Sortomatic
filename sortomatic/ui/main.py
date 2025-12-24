@@ -110,7 +110,58 @@ def start_app(port: int, theme: str, dark: bool, path: str = None):
         ui.timer(1.0, update_status_badges)  # Check every 1 second for smooth histograms
         
         # Main content area (empty for now)
-        with ui.column().classes('w-full h-full'):
-            pass
+        # Main content area
+        from .components.layout.smart_split import SmartSplitter
+        from .components.organisms.scans import ScanCard
+        from .components.organisms.terminals import AppTerminal
+
+        # We need to track instances to update them, as SmartSplitter creates duplicates for responsiveness
+        active_terminals = []
+        active_scancards = []
+        
+        def create_scan_card():
+            # Create a ScanCard and track it
+            card = ScanCard(
+                name="File Discovery",
+                state="idle",
+                progress=0.0,
+                eta="--:--",
+                theme=app_theme,
+                on_play=lambda: ui.notify("Starting scan...", type='info'),
+                on_restart=lambda: ui.notify("Restarting scan...", type='warning'),
+            )
+            # Layout is handled by CSS grid now
+            card.classes('w-full h-full') 
+            active_scancards.append(card)
+            
+        def create_terminal():
+            # Create Terminal and track it
+            term = AppTerminal(
+                height='100%', 
+                title="System Events"
+            )
+            term.classes('h-full')
+            active_terminals.append(term)
+
+        # Container for the main view content
+        with ui.element('div').classes('s-main-view'):
+            SmartSplitter(
+                left_factory=create_scan_card,
+                right_factory=create_terminal,
+                initial_split=40, # 40% for scan card
+                separator=True
+            )
+
+        # 3. Bridge Listeners for Updates
+        def handle_log_record(record):
+            if not client.has_socket_connection:
+                return
+            for term in active_terminals:
+                term.log(record.get('message', ''), color=record.get('color'))
+                
+        bridge.on("log_record", handle_log_record)
+        
+        # Cleanup listeners
+        client.on_disconnect(lambda: bridge.off("log_record", handle_log_record))
 
     ui.run(host='0.0.0.0', port=port, title="Sortomatic", dark=dark, reload=False)

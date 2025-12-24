@@ -67,3 +67,33 @@ body .q-loading-bar,
     background-color: var(--c-text-main);
     opacity: 0.1;
 }
+
+.s-main-view {
+    width: 100%;
+    height: calc(100vh - var(--header-height));
+    padding: var(--s-4);
+    display: flex;
+    flex-direction: column;
+}
+
+/* RESPONSIVE LAYOUT HELPERS */
+/* Mobile First: Default is Visible Mobile, Hidden Desktop */
+.s-visible-mobile {
+    display: flex;
+}
+
+.s-visible-desktop {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .s-visible-mobile {
+        display: none !important;
+        /* Force hide on desktop */
+    }
+
+    .s-visible-desktop {
+        display: flex !important;
+        /* Force flex on desktop */
+    }
+}

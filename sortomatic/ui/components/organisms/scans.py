@@ -94,8 +94,8 @@ def ScanCard(
         card_state['state'] = new_state
         _render_content()
 
-    card = AppCard(variant='glass', padding='p-4')
-    card.classes('gap-4')
+    card = AppCard(variant='glass')
+    card.classes('s-scan-card')
     card.update_progress = update_progress
     card.update_state = update_state
     
