@@ -23,6 +23,7 @@ cleanup() {
 }
 trap cleanup INT
 
+docker compose start sortomatic
 # 3. Start logs
 docker compose logs -f --since 30s sortomatic &
 LOG_PID=$!

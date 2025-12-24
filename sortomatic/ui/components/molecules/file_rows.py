@@ -1,19 +1,19 @@
 from nicegui import ui
 import os
-from ...theme import ColorPalette, CategoryStyles
+from ...theme import Theme, CategoryStyles
 from ..atoms.badges import AppBadge
 from ..atoms.cards import AppCard
 from ..atoms.icons import AppIcon
 from ....utils.formatters import format_size, format_date_human
 from ....core.types import ScanContext
 
-def FileRow(file_data: ScanContext, palette: ColorPalette):
+def FileRow(file_data: ScanContext, theme: Theme):
     """
     A premium file row component displaying detailed metadata.
     """
     category = file_data.category or 'Other'
     icon_name = CategoryStyles.get_icon(category)
-    icon_color = CategoryStyles.get_color(category, palette)
+    icon_color = CategoryStyles.get_color(category, theme)
     
     # Path processing
     path = file_data.path or ''

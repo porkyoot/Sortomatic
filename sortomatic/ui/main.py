@@ -1,17 +1,17 @@
 from nicegui import ui
-from .theme import apply_theme
+from .styles import load_global_styles
 from .themes.solarized import SOLARIZED_DARK, SOLARIZED_LIGHT
 
 def start_app(port: int, theme: str, dark: bool, path: str = None):
     """Entry point for the NiceGUI application."""
     print(f"DEBUG: Starting app on port {port} with path {path}")
     
-    # Select Palette BEFORE page definition
+    # Select Theme BEFORE page definition
     if theme == "solarized":
-        palette = SOLARIZED_DARK if dark else SOLARIZED_LIGHT
+        app_theme = SOLARIZED_DARK if dark else SOLARIZED_LIGHT
     else:
         # Fallback or other themes
-        palette = SOLARIZED_DARK if dark else SOLARIZED_LIGHT
+        app_theme = SOLARIZED_DARK if dark else SOLARIZED_LIGHT
 
     # Initialize Backend Bridge
     from sortomatic.core.bridge import bridge
@@ -22,7 +22,7 @@ def start_app(port: int, theme: str, dark: bool, path: str = None):
     def main_page():
         # CRITICAL: Apply theme FIRST, before ANY other code
         # This prevents Flash of Unstyled Content (FOUC)
-        apply_theme(palette)
+        load_global_styles(app_theme)
         
         # Now get client for event handlers
         client = ui.context.client
@@ -35,9 +35,9 @@ def start_app(port: int, theme: str, dark: bool, path: str = None):
             # theme_info: { 'name': str, 'is_dark': bool }
             from .themes.solarized import SOLARIZED_DARK, SOLARIZED_LIGHT
             is_dark = theme_info.get('is_dark', True)
-            new_palette = SOLARIZED_DARK if is_dark else SOLARIZED_LIGHT
-            apply_theme(new_palette)
-            ui.notify(f"Theme switched", color="var(--q-primary)")
+            new_theme = SOLARIZED_DARK if is_dark else SOLARIZED_LIGHT
+            load_global_styles(new_theme)
+            ui.notify(f"Theme switched", color="var(--c-primary)")
 
         bridge.on("theme_changed", handle_theme_change)
         
@@ -48,7 +48,7 @@ def start_app(port: int, theme: str, dark: bool, path: str = None):
         
         # Instantiate the new top status bar
         status_bar = StatusBar(
-            palette, 
+            app_theme, 
             on_theme_change=lambda t, d: bridge.emit("theme_changed", {'name': t, 'is_dark': d})
         )
         

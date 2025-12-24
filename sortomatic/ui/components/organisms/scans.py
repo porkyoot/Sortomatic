@@ -1,6 +1,6 @@
 from nicegui import ui
 from typing import Optional, Callable
-from ...theme import ColorPalette, StatusStyles
+from ...theme import Theme, StatusStyles
 from ..atoms.cards import AppCard
 from ..atoms.badges import StatusBadge
 from ..molecules.scan_controls import ScanControls
@@ -14,7 +14,7 @@ class ScanCard(AppCard):
                  state: str = "idle", # "running", "idle", "paused", "completed", "error"
                  progress: float = 0.0, # 0.0 to 100.0
                  eta: str = "Calculating...",
-                 palette: ColorPalette = None,
+                 theme: Theme = None,
                  on_play: Optional[Callable] = None,
                  on_pause: Optional[Callable] = None,
                  on_resume: Optional[Callable] = None,
@@ -27,7 +27,7 @@ class ScanCard(AppCard):
         self.state = state
         self.progress = progress
         self.eta = eta
-        self.palette = palette
+        self.theme = theme
         
         # Internal state mapping to ScanControls states
         # Map "running" to "running", "idle" to "idle", "paused" to "paused", etc.
@@ -43,7 +43,7 @@ class ScanCard(AppCard):
                 
                 self.controls = ScanControls(
                     state=control_state,
-                    palette=palette,
+                    theme=theme,
                     on_play=on_play,
                     on_pause=on_pause,
                     on_resume=on_resume,
@@ -61,10 +61,10 @@ class ScanCard(AppCard):
                 if state == "idle": badge_state = "unknown"
                 if state == "paused": badge_state = "pending"
                 
-                StatusBadge(label="Status", state=badge_state, palette=palette)
+                StatusBadge(label="Status", state=badge_state, theme=theme)
                 
                 # Colored state name
-                state_color = StatusStyles.get_color(badge_state, palette)
+                state_color = StatusStyles.get_color(badge_state, theme)
                 ui.label(state.upper()).classes('text-[10px] font-black tracking-widest').style(f'color: {state_color};')
                 
                 ui.element('div').classes('flex-grow') # Spacer

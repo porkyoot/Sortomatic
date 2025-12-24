@@ -1,6 +1,6 @@
 from nicegui import ui
 from typing import List, Dict, Optional, Callable, Set
-from ...theme import ColorPalette, CategoryStyles
+from ...theme import Theme, CategoryStyles
 from ..atoms.badges import CategoryBadge
 from ..atoms.buttons import AppButton
 from ..atoms.inputs.sliders import AppRangeSlider
@@ -11,10 +11,10 @@ class FilterBar(ui.row):
     """
     A premium filter component with search and a detailed filter popup.
     """
-    def __init__(self, palette: ColorPalette, on_change: Optional[Callable] = None):
+    def __init__(self, theme: Theme, on_change: Optional[Callable] = None):
         super().__init__()
         self.classes('w-full items-center gap-4 no-wrap')
-        self.palette = palette
+        self.theme = theme
         self.on_change = on_change
         
         # Internal State
@@ -58,7 +58,7 @@ class FilterBar(ui.row):
 
                     CategoryBadge(
                         cat, 
-                        self.palette, 
+                        self.theme, 
                         interactive=True, 
                         disabled=is_disabled,
                         on_click=toggle

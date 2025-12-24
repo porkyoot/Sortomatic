@@ -1,6 +1,6 @@
 from nicegui import ui
 from typing import Optional, Callable
-from ...theme import ColorPalette
+from ...theme import Theme
 from ..atoms.buttons import AppButton
 from ..atoms.inputs.toggles import AppToggle
 
@@ -18,7 +18,7 @@ class ScanControls(ui.row):
 
     def __init__(self, 
                  state: str = "idle", 
-                 palette: ColorPalette = None,
+                 theme: Theme = None,
                  on_play: Optional[Callable] = None,
                  on_pause: Optional[Callable] = None,
                  on_resume: Optional[Callable] = None,
@@ -28,7 +28,7 @@ class ScanControls(ui.row):
         self.classes('items-center gap-4 py-2 px-4 rounded-app bg-white/5 border border-white/5')
         
         self.state = state
-        self.palette = palette
+        self.theme = theme
         self.on_play = on_play
         self.on_pause = on_pause
         self.on_resume = on_resume
@@ -52,7 +52,7 @@ class ScanControls(ui.row):
                         icon="play_arrow",
                         variant="primary",
                         on_click=self.on_play
-                    ).style(f'--q-primary: {self.palette.green if self.palette else "var(--q-success)"}')
+                    ).style(f'--c-primary: {self.theme.colors.success if self.theme else "var(--c-success)"}')
                 
                 elif self.state == self.RUNNING:
                     AppButton(
@@ -60,7 +60,7 @@ class ScanControls(ui.row):
                         icon="pause",
                         variant="primary",
                         on_click=self.on_pause
-                    ).style(f'--q-primary: {self.palette.yellow if self.palette else "var(--q-warning)"}')
+                    ).style(f'--c-primary: {self.theme.colors.warning if self.theme else "var(--c-warning)"}')
                 
                 elif self.state == self.PAUSED:
                     AppButton(
@@ -68,14 +68,14 @@ class ScanControls(ui.row):
                         icon="play_arrow",
                         variant="primary",
                         on_click=self.on_resume
-                    ).style(f'--q-primary: {self.palette.blue if self.palette else "var(--q-info)"}')
+                    ).style(f'--c-primary: {self.theme.colors.blue if self.theme else "var(--c-primary)"}')
                     
                     AppButton(
                         label="Restart",
                         icon="refresh",
                         variant="primary",
                         on_click=self.on_restart
-                    ).style(f'--q-primary: {self.palette.red if self.palette else "var(--q-error)"}')
+                    ).style(f'--c-primary: {self.theme.colors.error if self.theme else "var(--c-error)"}')
 
                 elif self.state == self.COMPLETED:
                     AppButton(
@@ -83,7 +83,7 @@ class ScanControls(ui.row):
                         icon="refresh",
                         variant="primary",
                         on_click=self.on_restart
-                    ).style(f'--q-primary: {self.palette.red if self.palette else "var(--q-error)"}')
+                    ).style(f'--c-primary: {self.theme.colors.error if self.theme else "var(--c-error)"}')
 
             # 2. Separator
             ui.element('div').classes('w-px h-6 bg-white/10 mx-2')

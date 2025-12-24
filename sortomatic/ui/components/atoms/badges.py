@@ -1,14 +1,14 @@
 from nicegui import ui
 from typing import Optional, Union, Dict
 from .icons import AppIcon
-from ...theme import CategoryStyles, ColorPalette, StatusStyles
+from ...theme import CategoryStyles, Theme, StatusStyles
 
 def AppBadge(
     label: str,
     value: Optional[str] = None,
     icon: Optional[str] = None,
-    color: str = 'var(--q-primary)',
-    text_color: str = 'var(--app-text)',
+    color: str = 'var(--c-primary)',
+    text_color: str = 'var(--c-text-main)',
     variant: str = 'solid', # solid, glass, subtle
     on_click: Optional[callable] = None,
     interactive: bool = False,
@@ -31,7 +31,7 @@ def AppBadge(
 
     if disabled:
         classes += ' opacity-30 grayscale'
-        style = f'color: var(--app-text-sec); width: fit-content;'
+        style = f'color: var(--c-text-subtle); width: fit-content;'
     else:
         style = f'width: fit-content;'
         
@@ -64,7 +64,7 @@ def AppBadge(
 
 def CategoryBadge(
     category: str,
-    palette: ColorPalette,
+    theme: Theme,
     value: Optional[str] = None,
     icon: Optional[str] = None,
     interactive: bool = False,
@@ -75,7 +75,7 @@ def CategoryBadge(
     """
     A specialized badge for categories with automatic coloring.
     """
-    color = CategoryStyles.get_color(category, palette)
+    color = CategoryStyles.get_color(category, theme)
     return AppBadge(
         label=category,
         value=value,
@@ -90,7 +90,7 @@ def CategoryBadge(
 def StatusBadge(
     label: str,
     state: str,
-    palette: ColorPalette,
+    theme: Theme,
     value: Optional[str] = None,
     variant: str = 'solid',
     icon: Optional[Union[str, Dict[str, str]]] = None,
@@ -104,7 +104,7 @@ def StatusBadge(
               state names (ready, error, pending, idle, unknown) to icon names.
         rotate: If True, applies rotation animation to the icon.
     """
-    color = StatusStyles.get_color(state, palette)
+    color = StatusStyles.get_color(state, theme)
     
     # Resolve Icon
     effective_icon = None
@@ -129,7 +129,7 @@ def StatusBadge(
         value=value,
         icon=effective_icon,
         color=color,
-        text_color=palette.fg,  # Use the palette's foreground color
+        text_color=theme.colors.text_main,  # Use the theme's foreground color
         variant=variant,
         icon_classes=icon_cls,
         **kwargs
@@ -140,7 +140,7 @@ def CopyBadge(
     label: str = "Copy",
     value: Optional[str] = None,
     icon: str = "mdi-content-copy",
-    color: str = "var(--q-primary)",
+    color: str = "var(--c-primary)",
     variant: str = "glass",
     success_message: str = "Copied to clipboard!"
 ):

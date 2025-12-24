@@ -1,9 +1,9 @@
 from nicegui import ui
 from typing import List, Dict
-from ...theme import ColorPalette
+from ...theme import Theme
 from ..atoms.badges import StatusBadge
 
-def StatusBadgeRow(items: List[Dict[str, str]], palette: ColorPalette):
+def StatusBadgeRow(items: List[Dict[str, str]], theme: Theme):
     """
     A unified row of status indicators with a glassmorphic container.
     Renders a group of minimal status badges separated by dividers.
@@ -11,7 +11,7 @@ def StatusBadgeRow(items: List[Dict[str, str]], palette: ColorPalette):
     Args:
         items: List of dicts valid for creating status items. 
                Expected keys: 'label', 'state', 'tooltip'
-        palette: ColorPalette for styling
+        theme: Theme for styling
     """
     # Container style
     with ui.row().classes('items-center gap-4 px-4 py-1 rounded-full border').style('background-color: var(--app-bg); border-color: var(--app-text-sec);'):
@@ -31,7 +31,7 @@ def StatusBadgeRow(items: List[Dict[str, str]], palette: ColorPalette):
             StatusBadge(
                 label=label,
                 state=state,
-                palette=palette,
+                theme=theme,
                 variant='simple',
                 icon=icon,
                 rotate=rotate,

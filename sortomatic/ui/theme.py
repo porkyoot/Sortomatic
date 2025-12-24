@@ -1,178 +1,164 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from nicegui import ui
 
+# --- 1. DESIGN TOKENS (The "DNA") ---
+
 @dataclass
-class ColorPalette:
-    bg: str
-    bg_secondary: str
-    fg: str
-    fg_secondary: str
+class ThemeColors:
+    """Semantic color names, not just 'blue' or 'red'."""
+    surface_1: str  # Main background
+    surface_2: str  # Secondary background (cards)
+    surface_3: str  # Tertiary (hovers, inputs)
+    text_main: str
+    text_subtle: str
     primary: str
     secondary: str
-    accent_1: str
-    accent_2: str
+    
+    # Accents (Solarized)
+    green: str
+    red: str
+    cyan: str
+    orange: str
+    yellow: str
+    blue: str
+    magenta: str
+    violet: str
+
+    # Accents for visualization
+    accents: dict[str, str] = field(default_factory=dict)
+    
+    # Functional
+    debug: str
     info: str
+    success: str
     warning: str
     error: str
-    success: str
-    debug: str
-    blue: str
-    cyan: str
-    green: str
-    yellow: str
-    orange: str
-    red: str
-    magenta: str
-    purple: str
-    grey: str = "#586e75" # Default grey if not provided
-    
-    # UI Decoration
-    rounded: str = "4px"
-    font_family: str = "'Inter', sans-serif"
-    font_import: str = ""
 
-def apply_theme(palette: ColorPalette):
+@dataclass
+class ThemeLayout:
+    """Responsive spacing and sizing tokens (using REM)."""
+    # Spacing scale: 0=0, 1=0.25rem, 2=0.5rem, 4=1rem, etc.
+    spacing_unit: str = "0.25rem" 
+    
+    # Radii
+    radius_sm: str = "0.25rem"  # 4px
+    radius_md: str = "0.5rem"   # 8px
+    radius_lg: str = "1rem"     # 16px
+    radius_full: str = "9999px"
+    
+    # Typography
+    font_sans: str = "'Inter', system-ui, sans-serif"
+    font_mono: str = "'JetBrains Mono', monospace"
+
+@dataclass
+class Theme:
+    colors: ThemeColors
+    layout: ThemeLayout = field(default_factory=ThemeLayout)
+
+# --- 2. CSS GENERATOR (The "Compiler") ---
+
+def generate_css_variables(theme: Theme) -> str:
+    """Converts the Python Theme object into CSS Variables."""
+    
+    # Generate Accent Vars programmatically
+    accents = {
+        'green': theme.colors.green,
+        'red': theme.colors.red,
+        'cyan': theme.colors.cyan,
+        'orange': theme.colors.orange,
+        'yellow': theme.colors.yellow,
+        'blue': theme.colors.blue,
+        'magenta': theme.colors.magenta,
+        'violet': theme.colors.violet,
+    }
+    accents.update(theme.colors.accents)
+    accent_vars = "\n".join([f"--c-accent-{k}: {v};" for k, v in accents.items()])
+    
+    return f"""
+    :root {{
+        /* COLORS */
+        --c-surface-1: {theme.colors.surface_1};
+        --c-surface-2: {theme.colors.surface_2};
+        --c-surface-3: {theme.colors.surface_3};
+        --c-text-main: {theme.colors.text_main};
+        --c-text-subtle: {theme.colors.text_subtle};
+        --c-primary: {theme.colors.primary};
+        --c-secondary: {theme.colors.secondary};
+        --c-success: {theme.colors.success};
+        --c-warning: {theme.colors.warning};
+        --c-error: {theme.colors.error};
+        {accent_vars}
+
+        /* LAYOUT (Responsive) */
+        --unit: {theme.layout.spacing_unit};
+        --r-sm: {theme.layout.radius_sm};
+        --r-md: {theme.layout.radius_md};
+        --r-lg: {theme.layout.radius_lg};
+        --r-full: {theme.layout.radius_full};
+        
+        /* Spacing Scale */
+        --s-0: 0px;
+        --s-0_5: calc(var(--unit) * 0.5);
+        --s-1: calc(var(--unit) * 1);
+        --s-1_5: calc(var(--unit) * 1.5);
+        --s-2: calc(var(--unit) * 2);
+        --s-2_5: calc(var(--unit) * 2.5);
+        --s-3: calc(var(--unit) * 3);
+        --s-4: calc(var(--unit) * 4);
+        --s-5: calc(var(--unit) * 5);
+        --s-6: calc(var(--unit) * 6);
+        --s-8: calc(var(--unit) * 8);
+        --s-10: calc(var(--unit) * 10);
+        --s-12: calc(var(--unit) * 12);
+        --s-16: calc(var(--unit) * 16);
+        --s-20: calc(var(--unit) * 20);
+        --s-24: calc(var(--unit) * 24);
+        --s-32: calc(var(--unit) * 32);
+        --s-40: calc(var(--unit) * 40);
+        --s-48: calc(var(--unit) * 48);
+        --s-56: calc(var(--unit) * 56);
+        --s-64: calc(var(--unit) * 64);
+        
+        /* TYPOGRAPHY */
+        --font-main: {theme.layout.font_sans};
+        --font-mono: {theme.layout.font_mono};
+        
+        /* SHADOWS (Semantic) */
+        --shadow-subtle: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-float: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }}
+    
+    body {{
+        background-color: var(--c-surface-1);
+        color: var(--c-text-main);
+        font-family: var(--font-main);
+        margin: 0;
+    }}
     """
-    Injects CSS variables and global styles to override Quasar/NiceGUI defaults.
-    Must be called BEFORE any UI elements are created to prevent Flash of Unstyled Content (FOUC).
-    """
-    
-    # Force dark mode IMMEDIATELY before any rendering
-    # This prevents the white flash on page load
-    is_dark = palette.bg == "#002b36"  # Solarized dark check
-    ui.dark_mode(is_dark)
-    
-    import_html = f'<link href="{palette.font_import}" rel="stylesheet">' if palette.font_import else ""
-    # Inject MDI Fonts
-    import_html += '<link href="https://cdn.jsdelivr.net/npm/@mdi/font/css/materialdesignicons.min.css" rel="stylesheet">'
-    
-    # Inject critical CSS FIRST to prevent FOUC
-    ui.add_head_html(f'''
-    {import_html}
-    <style>
-        /* CRITICAL: Prevent Flash of Unstyled Content */
-        /* Apply background immediately, before full CSS loads */
-        html, body {{
-            background-color: {palette.bg} !important;
-            color: {palette.fg} !important;
-            font-family: {palette.font_family} !important;
-            margin: 0;
-            padding: 0;
-        }}
-        
-        /* CSS Variables - available globally */
-        :root {{
-            --q-primary: {palette.primary};
-            --q-secondary: {palette.secondary};
-            --q-dark: {palette.bg};
-            --app-bg: {palette.bg};
-            --app-bg-secondary: {palette.bg_secondary};
-            --app-text: {palette.fg};
-            --app-text-sec: {palette.fg_secondary};
-            --app-rounded: {palette.rounded};
-            --app-font: {palette.font_family};
-            /* Palette Colors */
-            --app-blue: {palette.blue};
-            --app-cyan: {palette.cyan};
-            --app-green: {palette.green};
-            --app-yellow: {palette.yellow};
-            --app-orange: {palette.orange};
-            --app-red: {palette.red};
-            --app-magenta: {palette.magenta};
-            --app-purple: {palette.purple};
-            --app-grey: {palette.grey};
-            --app-accent-1: {palette.accent_1};
-            --app-accent-2: {palette.accent_2};
-        }}
-        
-        /* Body styles using CSS variables */
-        body {{
-            background-color: var(--app-bg);
-            color: var(--app-text);
-            font-family: var(--app-font);
-        }}
-        
-        /* Utility classes */
-        .rounded-app {{
-            border-radius: var(--app-rounded) !important;
-        }}
-        .glass {{
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }}
-        .vibrant-shadow {{
-            box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-        }}
-        
-        /* Animations */
-        @keyframes subtle-pulse {{
-            0% {{ transform: scale(1); opacity: 1; }}
-            50% {{ transform: scale(1.05); opacity: 0.8; }}
-            100% {{ transform: scale(1); opacity: 1; }}
-        }}
-        .pulse-animation {{
-            animation: subtle-pulse 2s ease-in-out infinite;
-        }}
-        
-        @keyframes spin {{
-            from {{ transform: rotate(0deg); }}
-            to {{ transform: rotate(360deg); }}
-        }}
-        .spin-animation {{
-            animation: spin 3s linear infinite;
-        }}
-        
-        @keyframes rotate {{
-            from {{ transform: rotate(0deg); }}
-            to {{ transform: rotate(360deg); }}
-        }}
-        .rotate-animation {{
-            animation: rotate 2s linear infinite;
-        }}
 
-        /* Sortomatic Theme Utility Classes */
-        .bg-app-surface {{
-            background-color: var(--app-bg-secondary) !important;
-        }}
-        .bg-app-base {{
-            background-color: var(--app-bg) !important;
-        }}
-        .border-app-subtle {{
-            border: 1px solid color-mix(in srgb, var(--app-text)) !important;
-        }}
-        .border-app {{
-            border: 1px solid var(--app-text-sec) !important;
-        }}
-        .text-app-main {{
-            color: var(--app-text) !important;
-        }}
-        .text-app-subtle {{
-            color: var(--app-text-sec) !important;
-        }}
-    </style>
-    ''')
-
+# --- 3. LOGIC ADAPTERS (For Backward Compatibility & Helper Logic) ---
 
 class CategoryStyles:
     """Centralized management for category colors and ordering."""
     
     @staticmethod
-    def get_color(category: str, palette: ColorPalette) -> str:
+    def get_color(category: str, theme: Theme) -> str:
         from sortomatic.l8n import Strings
         
+        # Map to accents or theme colors
         mapping = {
-            Strings.CAT_IMAGE: palette.green,
-            Strings.CAT_VIDEO: palette.red,
-            Strings.CAT_DOCUMENT: palette.cyan,
-            Strings.CAT_MUSIC: palette.orange,
-            Strings.CAT_ARCHIVE: palette.yellow,
-            Strings.CAT_CODE: palette.blue,
-            Strings.CAT_3D: palette.magenta,
-            Strings.CAT_SOFTWARE: palette.purple,
-            Strings.CAT_OTHER: palette.grey,
+            Strings.CAT_IMAGE: theme.colors.green,
+            Strings.CAT_VIDEO: theme.colors.red,
+            Strings.CAT_DOCUMENT: theme.colors.cyan,
+            Strings.CAT_MUSIC: theme.colors.orange,
+            Strings.CAT_ARCHIVE: theme.colors.yellow,
+            Strings.CAT_CODE: theme.colors.blue,
+            Strings.CAT_3D: theme.colors.magenta,
+            Strings.CAT_SOFTWARE: theme.colors.violet,
+            Strings.CAT_OTHER: theme.colors.debug,
         }
-        return mapping.get(category, palette.grey)
+        return mapping.get(category, theme.colors.debug)
 
     @staticmethod
     def get_icon(category: str) -> str:
@@ -218,7 +204,7 @@ class StatusStyles:
     # Synonyms mapping
     _SYNONYMS = {
         "refreshing": PENDING,
-        "active": READY, # Defaulting active to READY (Green) unless it's "transiently active" (Yellow)
+        "active": READY,
         "busy": PENDING,
         "available": READY,
         "unavailable": ERROR,
@@ -235,16 +221,16 @@ class StatusStyles:
         return StatusStyles._SYNONYMS.get(s, StatusStyles.UNKNOWN)
 
     @staticmethod
-    def get_color(state: str, palette: ColorPalette) -> str:
+    def get_color(state: str, theme: Theme) -> str:
         resolved = StatusStyles.resolve_state(state)
         mapping = {
-            StatusStyles.UNKNOWN: palette.grey,
-            StatusStyles.PENDING: palette.yellow,
-            StatusStyles.READY: palette.green,
-            StatusStyles.ERROR: palette.red,
-            StatusStyles.IDLE: palette.blue,
+            StatusStyles.UNKNOWN: theme.colors.debug,
+            StatusStyles.PENDING: theme.colors.warning,
+            StatusStyles.READY: theme.colors.success,
+            StatusStyles.ERROR: theme.colors.error,
+            StatusStyles.IDLE: theme.colors.info,
         }
-        return mapping.get(resolved, palette.grey)
+        return mapping.get(resolved, theme.colors.debug)
 
     @staticmethod
     def get_icon(state: str) -> str:

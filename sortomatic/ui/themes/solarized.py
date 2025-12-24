@@ -1,4 +1,4 @@
-from ..theme import ColorPalette
+from ..theme import Theme, ThemeColors, ThemeLayout
 
 # Solarized Colors
 BASE03 = "#002b36"
@@ -18,64 +18,60 @@ BLUE   = "#268bd2"
 CYAN   = "#2aa198"
 GREEN  = "#859900"
 
-# UI Defaults for Solarized
-RECURSIVE_IMPORT = "https://fonts.googleapis.com/css2?family=Recursive:wght@300..1000&display=swap"
-RECURSIVE_SANS = "'Recursive', sans-serif"
-
-SOLARIZED_DARK = ColorPalette(
-    bg=BASE03,
-    bg_secondary=BASE02,
-    fg=BASE3,
-    fg_secondary=BASE01,
-    primary=BLUE,
-    secondary=ORANGE,
-    accent_1=BLUE,
-    accent_2=ORANGE,
-    info=BLUE,
-    warning=YELLOW,
-    error=RED,
-    success=GREEN,
-    debug=BASE01,
-    blue=BLUE,
-    cyan=CYAN,
-    green=GREEN,
-    yellow=YELLOW,
-    orange=ORANGE,
-    red=RED,
-    magenta=MAGENTA,
-    purple=VIOLET,
-    grey=BASE01,
-    # Decoration
-    rounded="8px",
-    font_family=RECURSIVE_SANS,
-    font_import=RECURSIVE_IMPORT
+SOLARIZED_DARK = Theme(
+    colors=ThemeColors(
+        surface_1=BASE03,     # Deep background
+        surface_2=BASE02,     # Card background
+        surface_3=BASE01,     # Hover state
+        text_main=BASE1,      # Primary text
+        text_subtle=BASE01,   # Secondary text
+        primary=BLUE,
+        secondary=ORANGE,
+        debug=BASE0,
+        info=BLUE,
+        success=GREEN,
+        warning=YELLOW,
+        error=RED,
+        green=GREEN,
+        red=RED,
+        cyan=CYAN,
+        orange=ORANGE,
+        yellow=YELLOW,
+        blue=BLUE,
+        magenta=MAGENTA,
+        violet=VIOLET,
+    
+    ),
+    layout=ThemeLayout(
+        spacing_unit="0.25rem",
+        radius_md="0.5rem" # Responsive radius
+    )
 )
 
-SOLARIZED_LIGHT = ColorPalette(
-    bg=BASE3,
-    bg_secondary=BASE2,
-    fg=BASE03,
-    fg_secondary=BASE1,
-    primary=BLUE,
-    secondary=ORANGE,
-    accent_1=BLUE,
-    accent_2=ORANGE,
-    info=BLUE,
-    warning=YELLOW,
-    error=RED,
-    success=GREEN,
-    debug=BASE1,
-    blue=BLUE,
-    cyan=CYAN,
-    green=GREEN,
-    yellow=YELLOW,
-    orange=ORANGE,
-    red=RED,
-    magenta=MAGENTA,
-    purple=VIOLET,
-    grey=BASE1,
-    # Decoration
-    rounded="8px",
-    font_family=RECURSIVE_SANS,
-    font_import=RECURSIVE_IMPORT
+SOLARIZED_LIGHT = Theme(
+    colors=ThemeColors(
+        surface_1=BASE3,
+        surface_2=BASE2,
+        surface_3=BASE1,
+        text_main=BASE01,
+        text_subtle=BASE01, # Maybe BASE00 for better contrast? Sticking to logic
+        primary=BLUE,
+        secondary=ORANGE,
+        success=GREEN,
+        warning=YELLOW,
+        error=RED,
+        green=GREEN,
+        red=RED,
+        cyan=CYAN,
+        orange=ORANGE,
+        yellow=YELLOW,
+        blue=BLUE,
+        magenta=MAGENTA,
+        violet=VIOLET,
+    
+    ),
+    layout=ThemeLayout(
+        spacing_unit="0.25rem",
+        radius_md="0.5rem"
+    )
 )

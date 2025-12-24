@@ -3,7 +3,7 @@ from typing import Optional
 
 def AppIcon(
     name: str,
-    color: str = 'var(--app-text)',
+    color: str = 'var(--c-text-main)',
     size: str = 'sm', # xs, sm, md, lg, xl OR explicit size like '1.5em'
     tooltip: Optional[str] = None,
     classes: str = ""
@@ -30,7 +30,7 @@ def AppIcon(
 
 def StatusIcon(
     state: str,
-    palette: 'ColorPalette',
+    theme: 'Theme',
     size: str = 'sm',
     tooltip: Optional[str] = None,
     animate: bool = False,
@@ -42,7 +42,7 @@ def StatusIcon(
     
     Args:
         state: Status state name
-        palette: ColorPalette instance for theming
+        theme: Theme instance for theming
         size: Quasar size (xs, sm, md, lg, xl) or explicit size
         tooltip: Optional tooltip text
         animate: Enable rotation animation for pending states
@@ -51,7 +51,7 @@ def StatusIcon(
     from ...theme import StatusStyles
     
     name = StatusStyles.get_icon(state)
-    color = StatusStyles.get_color(state, palette)
+    color = StatusStyles.get_color(state, theme)
     
     # Combine animation class with custom classes
     combined_classes = classes

@@ -1,6 +1,6 @@
 from nicegui import ui
 from typing import List, Dict, Optional, Callable, Union
-from ...theme import ColorPalette, StatusStyles
+from ...theme import Theme, StatusStyles
 from ..atoms.buttons import AppButton
 from ..atoms.progress_bar import AppProgressBar
 
@@ -13,14 +13,14 @@ class MenuStep(ui.column):
                  label: str, 
                  icon: str,
                  state: str = "inactive", # unavailable, available, inactive
-                 palette: ColorPalette = None,
+                 theme: Theme = None,
                  on_click: Optional[Callable] = None,
                  progress_values: List[float] = []):
         super().__init__()
         self.classes('items-stretch gap-1.5 min-w-[120px]')
         
         self.state = state
-        self.palette = palette
+        self.theme = theme
         self.progress_values = progress_values
         
         # Mapping my 3 states to StatusStyles and Button variants
@@ -30,18 +30,18 @@ class MenuStep(ui.column):
         
         variant = "secondary"
         btn_icon = icon
-        btn_color = "var(--q-primary)"
+        btn_color = "var(--c-primary)"
         disabled = False
         
         if state == "available":
-            btn_color = palette.green if palette else "var(--q-success)"
+            btn_color = theme.colors.success if theme else "var(--c-success)"
             variant = "primary"
         elif state == "unavailable":
-            btn_color = palette.red if palette else "var(--q-error)"
+            btn_color = theme.colors.error if theme else "var(--c-error)"
             disabled = True
             btn_icon = "block"
         elif state == "inactive":
-            btn_color = palette.grey if palette else "var(--q-secondary)"
+            btn_color = theme.colors.text_subtle if theme else "var(--c-text-subtle)"
             variant = "secondary"
             
         with self:
@@ -54,7 +54,7 @@ class MenuStep(ui.column):
             ).classes('w-full')
             
             # Apply color override for states if needed
-            self.button.style(f'--q-primary: {btn_color};')
+            self.button.style(f'--c-primary: {btn_color};')
             if disabled:
                 self.button.props('disabled')
                 self.button.classes('opacity-50 pointer-events-none grayscale')

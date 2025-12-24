@@ -1,6 +1,5 @@
 from nicegui import ui
 from typing import Optional, Callable
-from ...theme import apply_theme
 from ..atoms.buttons import AppButton
 from ..atoms.inputs.selects import AppSelect
 
@@ -14,8 +13,8 @@ class ThemeSelector(ui.row):
                  is_dark: bool = True, 
                  on_change: Optional[Callable] = None):
         super().__init__()
-        self.classes('flex flex-row items-center gap-2 px-4 py-1 rounded-full border bg-app-base no-wrap')
-        self.style('border-color: var(--app-text-sec);')
+        self.classes('flex flex-row items-center gap-2 px-4 py-1 rounded-full border bg-[var(--c-surface-1)] no-wrap')
+        self.style('border-color: var(--c-text-subtle);')
 
         self.current_theme = current_theme
         self.is_dark = is_dark
@@ -29,15 +28,15 @@ class ThemeSelector(ui.row):
             # 1. Theme Dropdown (Label + Menu)
             # Replaced heavy AppSelect with lightweight Label+Menu to match Badge height
             with ui.row().classes('items-center gap-1 cursor-pointer group'):
-                ui.label(self.current_theme.capitalize()).classes('text-[10px] font-bold uppercase tracking-widest text-app-main')
-                ui.icon('mdi-chevron-down', size='12px').classes('opacity-50 group-hover:opacity-100 transition-opacity text-app-main')
+                ui.label(self.current_theme.capitalize()).classes('text-[10px] font-bold uppercase tracking-widest text-[var(--c-text-main)]')
+                ui.icon('mdi-chevron-down', size='12px').classes('opacity-50 group-hover:opacity-100 transition-opacity text-[var(--c-text-main)]')
                 
-                with ui.menu().classes('bg-app-base border border-app shadow-lg rounded-app'):
+                with ui.menu().classes('bg-[var(--c-surface-1)] border border-[var(--c-text-subtle)] shadow-lg rounded-app'):
                     # Hardcoded options for now
-                    ui.menu_item('Solarized', on_click=lambda: self._handle_theme_change('solarized')).classes('text-[10px] uppercase font-bold tracking-widest text-app-main')
+                    ui.menu_item('Solarized', on_click=lambda: self._handle_theme_change('solarized')).classes('text-[10px] uppercase font-bold tracking-widest text-[var(--c-text-main)]')
 
             # 2. Vertical Divider (Height 3 to match BadgeRow)
-            ui.element('div').classes('h-3 w-0 border-app-subtle')
+            ui.element('div').classes('h-3 w-0 border-[var(--c-text-subtle)]')
 
             # 3. Dynamic Toggle Button
             # Dark Mode Enabled -> Show Sun (to switch to light)
@@ -51,7 +50,7 @@ class ThemeSelector(ui.row):
                     size="xs",  # Reduced to XS to match dense badges
                     variant="simple",
                     tooltip="Switch to Light Mode"
-                ).style('--q-primary: var(--app-orange);') # Theme Orange
+                ).style('--c-primary: var(--c-secondary);') # Theme Orange (Secondary)
             else:
                 # Blue Moon with Stars (nights_stay)
                 btn = AppButton(
@@ -61,7 +60,7 @@ class ThemeSelector(ui.row):
                     size="xs",  # Reduced to XS
                     variant="simple",
                     tooltip="Switch to Dark Mode"
-                ).style('--q-primary: var(--app-blue);') # Theme Blue
+                ).style('--c-primary: var(--c-primary);') # Theme Blue (Primary)
 
     def _toggle_mode(self):
         self.is_dark = not self.is_dark

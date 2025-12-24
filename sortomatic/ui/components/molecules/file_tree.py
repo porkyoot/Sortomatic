@@ -1,7 +1,7 @@
 from nicegui import ui
 from typing import List, Dict, Optional, Callable, Any
 import os
-from ...theme import ColorPalette, CategoryStyles
+from ...theme import Theme, CategoryStyles
 from ..atoms.badges import CategoryBadge, AppBadge
 from ..atoms.icons import AppIcon
 from ....utils.formatters import format_size, format_date_human
@@ -17,7 +17,7 @@ class FileTreeRow(ui.row):
                  name: str, 
                  level: int, 
                  is_dir: bool, 
-                 palette: ColorPalette,
+                 theme: Theme,
                  file_data: Optional[ScanContext] = None,
                  show_category: bool = True,
                  show_size: bool = True,
@@ -39,7 +39,7 @@ class FileTreeRow(ui.row):
                 else:
                     ui.element('div').classes('w-8') # Placeholder for chevron
                     category = file_data.category if file_data else "Other"
-                    ui.icon(CategoryStyles.get_icon(category), color=CategoryStyles.get_color(category, palette)).classes('mr-2')
+                    ui.icon(CategoryStyles.get_icon(category), color=CategoryStyles.get_color(category, theme)).classes('mr-2')
                 
                 ui.label(name).classes('text-sm font-medium truncate')
 
@@ -47,7 +47,7 @@ class FileTreeRow(ui.row):
             with ui.element('div').style('width: 15%;'):
                 if show_category and not is_dir and file_data:
                     category = file_data.category or "Other"
-                    CategoryBadge(category, palette, variant="glass")
+                    CategoryBadge(category, theme, variant="glass")
 
             # 3. Size Column
             with ui.element('div').style('width: 20%;'):
@@ -73,10 +73,10 @@ class FileTree(ui.column):
     
     Usage:
         # Default with Bridge data source
-        tree = FileTree(root_path="/", palette=palette)
+        tree = FileTree(root_path="/", theme=theme)
         
         # Custom data source
-        tree = FileTree(root_path="/", data_source=MyDataSource(), palette=palette)
+        tree = FileTree(root_path="/", data_source=MyDataSource(), theme=theme)
         
         # Apply filters and reload
         tree.reload(filters={'search': 'test.py', 'category': 'Code'})
@@ -86,7 +86,7 @@ class FileTree(ui.column):
     """
     def __init__(self, 
                  root_path: str, 
-                 palette: ColorPalette,
+                 theme: Theme,
                  data_source: Optional[FileTreeDataSource] = None,
                  show_category: bool = True,
                  show_size: bool = True,
@@ -94,7 +94,7 @@ class FileTree(ui.column):
         super().__init__()
         self.classes('w-full border border-white/10 rounded-app overflow-hidden bg-white/5')
         self.root_path = root_path
-        self.palette = palette
+        self.theme = theme
         self.show_category = show_category
         self.show_size = show_size
         self.show_date = show_date
@@ -268,7 +268,7 @@ class FileTree(ui.column):
             name=name, 
             level=level, 
             is_dir=True, 
-            palette=self.palette,
+            theme=self.theme,
             expanded=expanded,
             toggle_func=lambda p=path: self._toggle_expansion_incremental(p)
         )
@@ -286,7 +286,7 @@ class FileTree(ui.column):
             name=fileinfo.filename,
             level=level,
             is_dir=False,
-            palette=self.palette,
+            theme=self.theme,
             file_data=fileinfo,
             show_category=self.show_category,
             show_size=self.show_size,
